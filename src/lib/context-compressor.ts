@@ -11,7 +11,7 @@ export interface CompressedContext {
 
 export class ContextCompressor {
   private async getModel() {
-    return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    return genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
   }
 
   async compressMessages(messages: Array<{ role: string; content: string }>): Promise<CompressedContext> {
