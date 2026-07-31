@@ -162,8 +162,25 @@ export async function PATCH(request: NextRequest) {
       console.log('[CONFIG] Verificando se configuração existe...');
       const { data: existing, error: existingError } = await supabase
         .from('system_config')
-        .select('id')
+        .select('id, character, strategy, reasoning, system_prompt')
         .single();
+
+      // Verificar se a configuração é igual à existente (para evitar duplicata)
+      if (existing && !existingError) {
+        const isSame = 
+          existing.character === (character || '') &&
+          existing.strategy === (strategy || '') &&
+          existing.reasoning === (reasoning || '') &&
+          existing.system_prompt === (system_prompt || '');
+        
+        if (isSame) {
+          console.log('[CONFIG] Configuração é idêntica à existente - evitando duplicata');
+          return NextResponse.json({ 
+            message: 'Configuração já salva (idêntica à atual)',
+            data: existing
+          });
+        }
+      }
 
       let result;
       if (existing && !existingError) {

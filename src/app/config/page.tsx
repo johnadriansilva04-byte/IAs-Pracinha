@@ -58,12 +58,16 @@ export default function ConfigPage() {
         })
       });
 
-      const data = await response.json() as { error?: string };
+      const data = await response.json() as { error?: string; message?: string };
       
       console.log('[FRONTEND] Resposta do servidor:', { status: response.status, data });
       
       if (response.ok) {
-        alert('✅ Configuração salva com sucesso!');
+        if (data.message) {
+          alert('ℹ️ ' + data.message);
+        } else {
+          alert('✅ Configuração salva com sucesso!');
+        }
       } else {
         throw new Error(data.error || 'Erro ao salvar');
       }
