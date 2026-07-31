@@ -113,8 +113,21 @@ export default function ChatPage() {
         speak(data.response);
       }
     } catch (error: any) {
-      console.error('[FRONTEND] Erro ao enviar mensagem:', error);
-      alert('❌ Erro ao enviar mensagem: ' + (error.message || 'Tente novamente'));
+      console.error('[FRONTEND-ERROR] Erro ao enviar mensagem:', {
+        message: error.message,
+        stack: error.stack
+      });
+      
+      let errorMessage = 'Erro ao enviar mensagem';
+      if (error.message?.includes('Gemini')) {
+        errorMessage = 'Erro na API do Google Gemini. Verifique sua chave API.';
+      } else if (error.message?.includes('banco') || error.message?.includes('database')) {
+        errorMessage = 'Erro no banco de dados. Tente novamente.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert('❌ ' + errorMessage + '. Tente novamente.');
       // Remover mensagem do usuário em caso de erro
       setSessionMessages(sessionMessages);
     } finally {
