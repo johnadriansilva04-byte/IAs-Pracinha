@@ -1,5 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { supabase } from './supabase';
+
+const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
 
 export interface CompressedContext {
   facts: string[];
@@ -9,16 +11,6 @@ export interface CompressedContext {
 
 export class ContextCompressor {
   private async getModel() {
-    const { data: config } = await supabase
-      .from('system_config')
-      .select('google_ai_key')
-      .single();
-    
-    if (!config?.google_ai_key) {
-      throw new Error('Google AI Key não configurada');
-    }
-    
-    const genAI = new GoogleGenerativeAI(config.google_ai_key);
     return genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
   }
 

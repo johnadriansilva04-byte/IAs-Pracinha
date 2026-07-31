@@ -4,6 +4,8 @@ import { supabase } from '@/lib/supabase';
 import { ContextCompressor } from '@/lib/context-compressor';
 import { withAntiloop, generateAntiLoopKey } from '@/lib/antiloop';
 
+const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
 const compressor = new ContextCompressor();
 
 export async function POST(request: NextRequest) {
