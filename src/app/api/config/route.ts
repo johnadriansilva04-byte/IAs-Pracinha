@@ -4,11 +4,12 @@ import { withAntiloop, generateAntiLoopKey } from '@/lib/antiloop';
 
 export async function GET() {
   try {
-    console.log('[CONFIG] Buscando configuração do sistema...');
+    console.log('[CONFIG] Buscando configurações do sistema...');
     const { data, error } = await supabase
       .from('system_config')
       .select('id, character, strategy, reasoning, system_prompt, updated_at')
-      .single();
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
     if (error) {
       console.error('[CONFIG] Erro ao buscar configuração:', error);
@@ -29,8 +30,18 @@ export async function GET() {
       throw error;
     }
 
+    // Retornar a configuração mais recente
+    const latestConfig = data && data.length > 0 ? data[0] : {
+      id: '',
+      character: '',
+      strategy: '',
+      reasoning: '',
+      system_prompt: '',
+      updated_at: new Date().toISOString()
+    };
+
     console.log('[CONFIG] Configuração encontrada com sucesso');
-    return NextResponse.json(data);
+    return NextResponse.json(latestConfig);
   } catch (error: any) {
     console.error('[CONFIG] Erro detalhado:', {
       message: error.message,
@@ -51,17 +62,42 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { character, strategy, reasoning, system_prompt } = body;
+    const { character, strategy, reasoning, system_prompt, mode } = body;
 
     console.log('[CONFIG] Iniciando atualização da configuração...');
     console.log('[CONFIG] Campos recebidos:', {
       character: !!character,
       strategy: !!strategy,
       reasoning: !!reasoning,
-      system_prompt: !!system_prompt
+      system_prompt: !!system_prompt,
+      mode: mode || 'replace'
     });
 
-    // Gerar chave única para antiloop
+    // Se mode = 'new', sempre cria nova configuração
+    // Se mode = 'replace' ou undefined, substitui a existente
+    if (mode === 'new') {
+      console.log('[CONFIG] Criando nova configuração...');
+      const result = await supabase
+        .from('system_config')
+        .insert({
+          character: character || '',
+          strategy: strategy || '',
+          reasoning: reasoning || '',
+          system_prompt: system_prompt || ''
+        })
+        .select()
+        .single();
+
+      if (result.error) {
+        console.error('[CONFIG] Erro ao criar nova configuração:', result.error);
+        throw result.error;
+      }
+
+      console.log('[CONFIG] Nova configuração criada com sucesso');
+      return NextResponse.json(result.data);
+    }
+
+    // mode = 'replace' (padrão)
     const antiLoopKey = generateAntiLoopKey('config-update', {
       character,
       strategy,
@@ -70,7 +106,6 @@ export async function PATCH(request: NextRequest) {
     });
 
     return await withAntiloop(antiLoopKey, async () => {
-      // Primeiro, verificar se já existe configuração
       console.log('[CONFIG] Verificando se configuração existe...');
       const { data: existing, error: existingError } = await supabase
         .from('system_config')
@@ -79,7 +114,7 @@ export async function PATCH(request: NextRequest) {
 
       let result;
       if (existing && !existingError) {
-        console.log('[CONFIG] Atualizando configuração existente...');
+        console.log('[CONFIG] Substituindo configuração existente...');
         result = await supabase
           .from('system_config')
           .update({
@@ -92,12 +127,11 @@ export async function PATCH(request: NextRequest) {
           .select()
           .single();
       } else {
-        console.log('[CONFIG] Criando nova configuração...');
+        console.log('[CONFIG] Criando primeira configuração...');
         
-        // Se tabela não existe, tentar criar
         if (existingError?.message?.includes('does not exist')) {
           console.error('[CONFIG] Tabela não existe:', existingError);
-          throw new Error('Tabela system_config não existe. Execute o SQL do arquivo supabase-setup.sql no painel do Supabase.');
+          throw new Error('Tabela system_config não existe. Execute o SQL do arquivo supabase-reset.sql no painel do Supabase.');
         }
         
         result = await supabase
@@ -131,7 +165,7 @@ export async function PATCH(request: NextRequest) {
     
     let errorMessage = 'Erro ao atualizar configuração';
     if (error.message?.includes('does not exist')) {
-      errorMessage = 'Tabela system_config não existe. Execute o SQL do arquivo supabase-setup.sql no painel do Supabase.';
+      errorMessage = 'Tabela system_config não existe. Execute o SQL do arquivo supabase-reset.sql no painel do Supabase.';
     } else if (error.message?.includes('row-level security policy')) {
       errorMessage = 'Erro de permissão do Supabase (RLS). Vá ao painel do Supabase > Authentication > Policies e desative o RLS ou adicione políticas para permitir inserção.';
     } else if (error.message?.includes('Operação já em andamento')) {

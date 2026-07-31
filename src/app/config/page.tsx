@@ -23,6 +23,7 @@ export default function ConfigPage() {
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveMode, setSaveMode] = useState<'replace' | 'new'>('replace');
 
   useEffect(() => {
     fetchConfig();
@@ -51,7 +52,8 @@ export default function ConfigPage() {
           character: config.character,
           strategy: config.strategy,
           reasoning: config.reasoning,
-          system_prompt: config.system_prompt
+          system_prompt: config.system_prompt,
+          mode: saveMode // 'replace' ou 'new'
         })
       });
 
@@ -158,6 +160,40 @@ export default function ConfigPage() {
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               Escreva livremente. Sem validações ou restrições.
             </p>
+          </div>
+
+          <div className="space-y-2 pt-4 border-t border-zinc-200 dark:border-zinc-700">
+            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              Modo de salvamento
+            </label>
+            <div className="flex gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="saveMode"
+                  value="replace"
+                  checked={saveMode === 'replace'}
+                  onChange={(e) => setSaveMode(e.target.value as 'replace' | 'new')}
+                  className="w-4 h-4 text-zinc-900"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  Substituir configuração existente
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="saveMode"
+                  value="new"
+                  checked={saveMode === 'new'}
+                  onChange={(e) => setSaveMode(e.target.value as 'replace' | 'new')}
+                  className="w-4 h-4 text-zinc-900"
+                />
+                <span className="text-sm text-zinc-700 dark:text-zinc-300">
+                  Criar nova configuração
+                </span>
+              </label>
+            </div>
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
