@@ -59,6 +59,59 @@ export async function GET() {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams;
+    const configId = searchParams.get('id');
+
+    console.log('[CONFIG] Deletando configuração:', configId);
+
+    if (!configId) {
+      console.error('[CONFIG] ID não fornecido');
+      return NextResponse.json({ error: 'ID da configuração é obrigatório' }, { status: 400 });
+    }
+
+    const antiLoopKey = generateAntiLoopKey('delete-config', { id: configId });
+
+    return await withAntiloop(antiLoopKey, async () => {
+      console.log('[CONFIG] Executando delete no banco...');
+      const { error } = await supabase
+        .from('system_config')
+        .delete()
+        .eq('id', configId);
+
+      if (error) {
+        console.error('[CONFIG] Erro ao deletar configuração:', error);
+        throw error;
+      }
+
+      console.log('[CONFIG] Configuração deletada com sucesso');
+      return NextResponse.json({ success: true });
+    });
+  } catch (error: any) {
+    console.error('[CONFIG] Erro detalhado ao deletar:', {
+      message: error.message,
+      code: error.code,
+      details: error.details,
+      hint: error.hint
+    });
+    
+    let errorMessage = 'Erro ao deletar configuração';
+    if (error.message?.includes('Operação já em andamento')) {
+      errorMessage = 'Já existe uma operação de deleção em andamento. Aguarde.';
+    } else if (error.message?.includes('does not exist')) {
+      errorMessage = 'Tabela de configurações não existe.';
+    } else if (error.code === 'PGRST116') {
+      errorMessage = 'Configuração não encontrada.';
+    }
+    
+    return NextResponse.json({ 
+      error: errorMessage,
+      details: error.message 
+    }, { status: 500 });
+  }
+}
+
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();

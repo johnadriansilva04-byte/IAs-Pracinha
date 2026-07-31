@@ -45,11 +45,21 @@ export default function Home() {
   };
 
   const deleteCase = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta conversa? Isso apagará todas as mensagens também.')) {
+      return;
+    }
+    
     try {
-      await fetch(`/api/cases/${id}`, { method: 'DELETE' });
+      const response = await fetch(`/api/cases/${id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Erro ao excluir: ' + (error.error || 'Erro desconhecido'));
+        return;
+      }
       setCases(cases.filter(c => c.id !== id));
     } catch (error) {
       console.error('Erro ao deletar caso:', error);
+      alert('Erro ao excluir conversa');
     }
   };
 

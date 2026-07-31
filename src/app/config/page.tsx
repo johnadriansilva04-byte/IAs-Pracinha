@@ -24,6 +24,7 @@ export default function ConfigPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMode, setSaveMode] = useState<'replace' | 'new'>('replace');
+  const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -71,6 +72,33 @@ export default function ConfigPage() {
       alert('❌ Erro ao salvar configuração: ' + (error.message || 'Verifique se as tabelas do Supabase foram criadas'));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteConfig = async () => {
+    if (!confirm('Tem certeza que deseja excluir esta configuração?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/config?id=${config.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        const error = await response.json();
+        alert('Erro ao excluir: ' + (error.error || 'Erro desconhecido'));
+        return;
+      }
+      alert('Configuração excluída com sucesso!');
+      setConfig({
+        id: '',
+        character: '',
+        strategy: '',
+        reasoning: '',
+        system_prompt: '',
+        updated_at: ''
+      });
+    } catch (error) {
+      console.error('Erro ao deletar configuração:', error);
+      alert('Erro ao excluir configuração');
     }
   };
 
@@ -196,20 +224,29 @@ export default function ConfigPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <Link
-              href="/"
-              className="px-6 py-3 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-            >
-              Cancelar
-            </Link>
+          <div className="flex justify-between items-center pt-4 border-t border-zinc-200 dark:border-zinc-700">
             <button
-              onClick={saveConfig}
-              disabled={saving}
-              className="px-6 py-3 bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={deleteConfig}
+              disabled={!config.id}
+              className="px-6 py-3 border border-red-300 dark:border-red-600 text-red-700 dark:text-red-300 rounded-lg font-medium hover:bg-red-50 dark:hover:bg-red-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Salvando...' : 'Salvar Configuração'}
+              🗑️ Excluir Configuração
             </button>
+            <div className="flex gap-4">
+              <Link
+                href="/"
+                className="px-6 py-3 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg font-medium hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+              >
+                Cancelar
+              </Link>
+              <button
+                onClick={saveConfig}
+                disabled={saving}
+                className="px-6 py-3 bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Salvando...' : 'Salvar Configuração'}
+              </button>
+            </div>
           </div>
         </div>
 
