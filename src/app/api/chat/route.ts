@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { ContextCompressor } from '@/lib/context-compressor';
 import { withAntiloop, generateAntiLoopKey } from '@/lib/antiloop';
 import { MessageFilter } from '@/lib/message-filter';
+import { DEFAULT_CONFIG } from '@/lib/default-config';
 
 const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
@@ -91,10 +92,13 @@ export async function POST(request: NextRequest) {
 
       if (configError) {
         console.error('[CHAT-CONFIG-ERROR] Erro ao buscar configuração:', configError);
-        console.log('[CHAT-CONFIG-FALLBACK] Usando configuração padrão');
+        console.log('[CHAT-CONFIG-FALLBACK] Usando configuração padrão - Pracinha da Força Expedicionária Brasileira');
       } else {
         console.log('[CHAT-CONFIG-SUCCESS] Configuração encontrada');
       }
+
+      // Usar configuração do banco ou padrão
+      const effectiveConfig = config || DEFAULT_CONFIG;
 
       console.log('[CHAT-GEMINI] Google AI Key configurada:', !!GOOGLE_AI_KEY);
 
@@ -161,11 +165,11 @@ export async function POST(request: NextRequest) {
 
       // Construir system prompt completo
       const systemPrompt = `
-CARÁTER: ${config?.character || 'Amigável e prestativo'}
-ESTRATÉGIA: ${config?.strategy || 'Sempre ajudar com eficiência'}
-RACIOCÍNIO: ${config?.reasoning || 'Pensar passo a passo antes de responder'}
+CARÁTER: ${effectiveConfig.character}
+ESTRATÉGIA: ${effectiveConfig.strategy}
+RACIOCÍNIO: ${effectiveConfig.reasoning}
 
-${config?.system_prompt || 'Você é um assistente pessoal útil e eficiente.'}
+${effectiveConfig.system_prompt}
 `;
 
       console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini Flash...');
