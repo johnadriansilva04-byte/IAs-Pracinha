@@ -163,25 +163,16 @@ export async function POST(request: NextRequest) {
         context = allMessages.map(m => `${m.role}: ${m.content}`).join('\n');
       }
 
-      // Construir system prompt completo
-      const systemPrompt = `
-CARÁTER: ${effectiveConfig.character}
-ESTRATÉGIA: ${effectiveConfig.strategy}
-RACIOCÍNIO: ${effectiveConfig.reasoning}
-
-${effectiveConfig.system_prompt}
-`;
-
-      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini Flash...');
+      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 2.5 Pro...');
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
 
         const chat = model.startChat({
           history: messagesArray.map(m => ({
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
           })),
-          systemInstruction: systemPrompt
+          systemInstruction: effectiveConfig.system_prompt
         });
 
         const result = await chat.sendMessage(message);
