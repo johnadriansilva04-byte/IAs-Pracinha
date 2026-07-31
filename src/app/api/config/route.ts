@@ -7,7 +7,7 @@ export async function GET() {
     console.log('[CONFIG] Buscando configuração do sistema...');
     const { data, error } = await supabase
       .from('system_config')
-      .select('*')
+      .select('id, character, strategy, reasoning, system_prompt, updated_at')
       .single();
 
     if (error) {
@@ -22,7 +22,6 @@ export async function GET() {
           strategy: '',
           reasoning: '',
           system_prompt: '',
-          google_ai_key: '',
           updated_at: new Date().toISOString()
         });
       }
@@ -52,15 +51,14 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { character, strategy, reasoning, system_prompt, google_ai_key } = body;
+    const { character, strategy, reasoning, system_prompt } = body;
 
     console.log('[CONFIG] Iniciando atualização da configuração...');
     console.log('[CONFIG] Campos recebidos:', {
       character: !!character,
       strategy: !!strategy,
       reasoning: !!reasoning,
-      system_prompt: !!system_prompt,
-      google_ai_key: !!google_ai_key
+      system_prompt: !!system_prompt
     });
 
     // Gerar chave única para antiloop
@@ -89,7 +87,6 @@ export async function PATCH(request: NextRequest) {
             strategy: strategy || '',
             reasoning: reasoning || '',
             system_prompt: system_prompt || '',
-            google_ai_key: google_ai_key || '',
             updated_at: new Date().toISOString()
           })
           .select()
@@ -109,8 +106,7 @@ export async function PATCH(request: NextRequest) {
             character: character || '',
             strategy: strategy || '',
             reasoning: reasoning || '',
-            system_prompt: system_prompt || '',
-            google_ai_key: google_ai_key || ''
+            system_prompt: system_prompt || ''
           })
           .select()
           .single();
