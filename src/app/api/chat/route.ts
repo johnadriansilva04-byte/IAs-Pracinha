@@ -3,6 +3,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { supabase } from '@/lib/supabase';
 import { ContextCompressor } from '@/lib/context-compressor';
 import { withAntiloop, generateAntiLoopKey } from '@/lib/antiloop';
+import { MessageFilter } from '@/lib/message-filter';
 
 const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
@@ -20,11 +21,6 @@ export async function POST(request: NextRequest) {
     });
 
     // Validação básica
-    if (!case_id) {
-      console.error('[CHAT] case_id não fornecido');
-      return NextResponse.json({ error: 'ID da conversa (case_id) é obrigatório' }, { status: 400 });
-    }
-
     if (!message || typeof message !== 'string') {
       console.error('[CHAT] mensagem inválida');
       return NextResponse.json({ error: 'Mensagem é obrigatória e deve ser um texto' }, { status: 400 });
@@ -33,6 +29,36 @@ export async function POST(request: NextRequest) {
     if (message.trim().length === 0) {
       console.error('[CHAT] mensagem vazia');
       return NextResponse.json({ error: 'Mensagem não pode estar vazia' }, { status: 400 });
+    }
+
+    // Se não tem case_id, criar nova conversa automaticamente
+    let actualCaseId = case_id;
+    if (!case_id) {
+      console.log('[CHAT] Nenhum case_id fornecido, criando nova conversa...');
+      try {
+        const { data: newCase, error: createError } = await supabase
+          .from('cases')
+          .insert({
+            title: 'Nova Conversa',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('[CHAT] Erro ao criar nova conversa:', createError);
+          // Continuar mesmo com erro - não quebrar a UX
+          console.log('[CHAT] Continuando sem salvar no banco (modo temporário)');
+          actualCaseId = null;
+        } else {
+          actualCaseId = newCase.id;
+          console.log('[CHAT] Nova conversa criada:', actualCaseId);
+        }
+      } catch (error) {
+        console.error('[CHAT] Erro ao criar conversa (não crítico):', error);
+        actualCaseId = null;
+      }
     }
 
     // Verificar se é comando de salvar
@@ -46,8 +72,8 @@ export async function POST(request: NextRequest) {
 
     // Gerar chave única para antiloop
     const antiLoopKey = generateAntiLoopKey('chat-message', {
-      case_id,
-      message_hash: message.length // Simplificado para antiloop
+      case_id: actualCaseId,
+      message_hash: message.length
     });
 
     return await withAntiloop(antiLoopKey, async () => {
@@ -60,34 +86,39 @@ export async function POST(request: NextRequest) {
 
       if (configError) {
         console.error('[CHAT] Erro ao buscar configuração:', configError);
-        if (configError.message?.includes('does not exist')) {
-          return NextResponse.json({ 
-            error: 'Tabela de configuração não existe. Configure o sistema primeiro.' 
-          }, { status: 500 });
-        }
-        throw configError;
+        // Usar configuração padrão se falhar
+        console.log('[CHAT] Usando configuração padrão');
       }
 
       console.log('[CHAT] Google AI Key está configurada via variável de ambiente');
 
-      console.log('[CHAT] Buscando mensagens anteriores...');
-      // Buscar mensagens anteriores
-      const { data: messages, error: messagesError } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('case_id', case_id)
-        .order('created_at', { ascending: true });
+      // Buscar mensagens anteriores apenas se tiver case_id
+      let messagesArray: any[] = [];
+      if (actualCaseId) {
+        try {
+          console.log('[CHAT] Buscando mensagens anteriores...');
+          const { data: messages, error: messagesError } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('case_id', actualCaseId)
+            .order('created_at', { ascending: true });
 
-      if (messagesError) {
-        console.error('[CHAT] Erro ao buscar mensagens:', messagesError);
-        throw messagesError;
+          if (messagesError) {
+            console.error('[CHAT] Erro ao buscar mensagens:', messagesError);
+            // Continuar sem histórico se falhar
+            console.log('[CHAT] Continuando sem histórico (erro não crítico)');
+          } else {
+            messagesArray = messages || [];
+            console.log('[CHAT] Mensagens anteriores encontradas:', messagesArray.length);
+          }
+        } catch (error) {
+          console.error('[CHAT] Erro ao buscar mensagens (não crítico):', error);
+        }
+      } else {
+        console.log('[CHAT] Sem case_id, iniciando chat sem histórico');
       }
 
       // Preparar contexto
-      const messagesArray = messages || [];
-      console.log('[CHAT] Mensagens anteriores encontradas:', messagesArray.length);
-      
-      // Verificar se precisa comprimir
       const allMessages = [
         ...messagesArray.map(m => ({ role: m.role, content: m.content })),
         { role: 'user', content: message }
@@ -102,15 +133,13 @@ export async function POST(request: NextRequest) {
       let context = '';
       if (messagesArray.length > 10 || compressor.shouldCompress(estimatedTokens)) {
         console.log('[CHAT] Comprimindo contexto...');
-        // Comprimir mensagens antigas
-        const oldMessages = messagesArray.slice(0, -5); // Manter as 5 mais recentes
+        const oldMessages = messagesArray.slice(0, -5);
         const recentMessages = messagesArray.slice(-5);
 
         if (oldMessages.length > 0) {
           const compressed = await compressor.compressMessages(
             oldMessages.map(m => ({ role: m.role, content: m.content }))
           );
-          
           context = await compressor.reconstructContext(compressed, recentMessages);
         } else {
           context = recentMessages.map(m => `${m.role}: ${m.content}`).join('\n');
@@ -119,7 +148,7 @@ export async function POST(request: NextRequest) {
         context = allMessages.map(m => `${m.role}: ${m.content}`).join('\n');
       }
 
-      // Construir system prompt completo - SEM VALIDAÇÃO
+      // Construir system prompt completo
       const systemPrompt = `
 CARÁTER: ${config?.character || 'Amigável e prestativo'}
 ESTRATÉGIA: ${config?.strategy || 'Sempre ajudar com eficiência'}
@@ -129,7 +158,6 @@ ${config?.system_prompt || 'Você é um assistente pessoal útil e eficiente.'}
 `;
 
       console.log('[CHAT] Enviando mensagem para Gemini Flash...');
-      // Chamar Gemini Flash
       const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
       const chat = model.startChat({
@@ -145,10 +173,66 @@ ${config?.system_prompt || 'Você é um assistente pessoal útil e eficiente.'}
 
       console.log('[CHAT] Resposta recebida, tamanho:', response.length);
 
-      // NÃO salva automaticamente - só salva quando usuário pedir
-      // As mensagens ficam em memória (session storage) até o usuário pedir para salvar
+      // Salvar mensagens no banco (se tiver case_id e passar no filtro)
+      if (actualCaseId) {
+        try {
+          const shouldSaveUserMessage = MessageFilter.shouldSave(message, 'user');
+          const shouldSaveAssistantMessage = MessageFilter.shouldSave(response, 'assistant');
 
-      return NextResponse.json({ response, saved: false });
+          console.log('[CHAT] Filtro de salvamento:', {
+            user: MessageFilter.getSaveReason(message, 'user'),
+            assistant: MessageFilter.getSaveReason(response, 'assistant')
+          });
+
+          // Salvar mensagem do usuário
+          if (shouldSaveUserMessage) {
+            await supabase
+              .from('messages')
+              .insert({
+                case_id: actualCaseId,
+                role: 'user',
+                content: message,
+                should_save: true,
+                created_at: new Date().toISOString()
+              });
+            console.log('[CHAT] Mensagem do usuário salva');
+          } else {
+            console.log('[CHAT] Mensagem do usuário NÃO salva (filtro)');
+          }
+
+          // Salvar resposta do assistente
+          if (shouldSaveAssistantMessage) {
+            await supabase
+              .from('messages')
+              .insert({
+                case_id: actualCaseId,
+                role: 'assistant',
+                content: response,
+                should_save: true,
+                created_at: new Date().toISOString()
+              });
+            console.log('[CHAT] Resposta do assistente salva');
+          } else {
+            console.log('[CHAT] Resposta do assistente NÃO salva (filtro)');
+          }
+
+          // Atualizar timestamp da conversa
+          await supabase
+            .from('cases')
+            .update({ updated_at: new Date().toISOString() })
+            .eq('id', actualCaseId);
+
+        } catch (error) {
+          console.error('[CHAT] Erro ao salvar mensagens (não crítico):', error);
+          // Não quebrar a UX se falhar ao salvar
+        }
+      }
+
+      return NextResponse.json({ 
+        response, 
+        saved: true,
+        case_id: actualCaseId
+      });
     });
   } catch (error: any) {
     console.error('[CHAT] Erro detalhado:', {

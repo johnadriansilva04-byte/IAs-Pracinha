@@ -39,8 +39,11 @@ export default function Home() {
       });
       const data = await response.json();
       setCases([data, ...cases]);
+      // Redirecionar para o chat com a nova conversa
+      window.location.href = `/chat/${data.id}`;
     } catch (error) {
       console.error('Erro ao criar caso:', error);
+      alert('Erro ao criar conversa');
     }
   };
 

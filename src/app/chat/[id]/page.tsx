@@ -74,7 +74,7 @@ export default function ChatPage() {
     setInput('');
     setLoading(true);
 
-    console.log('[FRONTEND] Enviando mensagem:', { length: userMessage.length });
+    console.log('[FRONTEND] Enviando mensagem:', { length: userMessage.length, caseId });
 
     // Adicionar mensagem do usuário à sessão
     const newSessionMessages = [...sessionMessages, { role: 'user', content: userMessage }];
@@ -84,7 +84,10 @@ export default function ChatPage() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ case_id: caseId, message: userMessage })
+        body: JSON.stringify({ 
+          case_id: caseId || null, // Enviar null se não tiver case_id
+          message: userMessage 
+        })
       });
 
       const data = await response.json();
@@ -93,6 +96,13 @@ export default function ChatPage() {
       
       if (data.error) {
         throw new Error(data.error);
+      }
+
+      // Se foi criado um novo case_id, redirecionar para a nova URL
+      if (data.case_id && data.case_id !== caseId) {
+        console.log('[FRONTEND] Nova conversa criada, redirecionando:', data.case_id);
+        router.push(`/chat/${data.case_id}`);
+        return;
       }
 
       // Adicionar resposta do assistente à sessão
