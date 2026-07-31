@@ -53,6 +53,22 @@ async function testConnection() {
       console.log('✅ Tabela messages OK');
     }
 
+    // Testar 4: Verificar estrutura da tabela system_config
+    console.log('\n4. Verificando estrutura da tabela system_config...');
+    const { data: configData, error: configStructError } = await supabase
+      .from('system_config')
+      .select('*')
+      .limit(1);
+
+    if (configStructError) {
+      console.error('❌ Erro ao verificar estrutura:', configStructError.message);
+    } else {
+      console.log('✅ Estrutura da tabela system_config OK');
+      if (configData && configData.length > 0) {
+        console.log('   Colunas:', Object.keys(configData[0]));
+      }
+    }
+
     console.log('\n=== RESUMO ===');
     if (casesError || configError || messagesError) {
       console.log('❌ Conexão OK, mas tabelas não existem ou têm erro');

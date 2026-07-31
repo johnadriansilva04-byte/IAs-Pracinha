@@ -30,9 +30,11 @@ CREATE TABLE system_config (
   strategy TEXT DEFAULT '',
   reasoning TEXT DEFAULT '',
   system_prompt TEXT DEFAULT 'Você é um assistente pessoal útil e eficiente.',
-  google_ai_key TEXT DEFAULT '',
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Se a tabela já existe e tem a coluna antiga, remover
+ALTER TABLE system_config DROP COLUMN IF EXISTS google_ai_key;
 
 -- Habilitar RLS
 ALTER TABLE cases ENABLE ROW LEVEL SECURITY;

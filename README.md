@@ -52,9 +52,9 @@ const supabaseAnonKey = 'SUA_CHAVE_ANON';
 
 ### 4. Configurar Google AI
 
-1. Acesse https://makersuite.google.com/app/apikey
-2. Crie uma chave API
-3. No app, vá em Configuração e cole a chave
+1. A API key já está integrada no sistema via variável de ambiente
+2. O arquivo `.env.local` contém a chave configurada
+3. No Vercel, configure a variável de ambiente `GOOGLE_AI_API_KEY`
 
 ## 🚀 Rodar o projeto
 
