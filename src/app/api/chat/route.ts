@@ -68,15 +68,7 @@ export async function POST(request: NextRequest) {
         throw configError;
       }
 
-      if (!config || !config.google_ai_key) {
-        console.error('[CHAT] Google AI Key não configurada');
-        return NextResponse.json({ 
-          error: 'Chave API Google AI não configurada. Vá em Configuração e adicione sua chave.' 
-        }, { status: 400 });
-      }
-
-      console.log('[CHAT] Inicializando Google AI...');
-      const genAI = new GoogleGenerativeAI(config.google_ai_key);
+      console.log('[CHAT] Google AI Key está configurada via variável de ambiente');
 
       console.log('[CHAT] Buscando mensagens anteriores...');
       // Buscar mensagens anteriores

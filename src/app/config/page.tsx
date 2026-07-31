@@ -9,7 +9,6 @@ interface SystemConfig {
   strategy: string;
   reasoning: string;
   system_prompt: string;
-  google_ai_key: string;
   updated_at: string;
 }
 
@@ -20,7 +19,6 @@ export default function ConfigPage() {
     strategy: '',
     reasoning: '',
     system_prompt: '',
-    google_ai_key: '',
     updated_at: ''
   });
   const [loading, setLoading] = useState(true);
@@ -53,8 +51,7 @@ export default function ConfigPage() {
           character: config.character,
           strategy: config.strategy,
           reasoning: config.reasoning,
-          system_prompt: config.system_prompt, // SEM VALIDAÇÃO - usuário escreve do jeito que quiser
-          google_ai_key: config.google_ai_key
+          system_prompt: config.system_prompt
         })
       });
 
@@ -160,22 +157,6 @@ export default function ConfigPage() {
             />
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               Escreva livremente. Sem validações ou restrições.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Chave API Google AI (Gemini) *
-            </label>
-            <input
-              type="password"
-              value={config.google_ai_key}
-              onChange={(e) => setConfig({ ...config, google_ai_key: e.target.value })}
-              className="w-full px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50"
-              placeholder="Cole sua chave de API do Google AI aqui"
-            />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Necessário para o assistente funcionar. Obtenha em: https://makersuite.google.com/app/apikey
             </p>
           </div>
 

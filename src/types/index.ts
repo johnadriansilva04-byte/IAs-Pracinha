@@ -20,6 +20,5 @@ export interface SystemConfig {
   strategy: string;
   reasoning: string;
   system_prompt: string;
-  google_ai_key: string;
   updated_at: string;
 }
