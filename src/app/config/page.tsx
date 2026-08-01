@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface SystemConfig {
@@ -13,6 +14,7 @@ interface SystemConfig {
 }
 
 export default function ConfigPage() {
+  const router = useRouter();
   const [config, setConfig] = useState<SystemConfig>({
     id: '',
     character: '',
@@ -27,7 +29,26 @@ export default function ConfigPage() {
   const [showDelete, setShowDelete] = useState(false);
 
   useEffect(() => {
-    fetchConfig();
+    // Verificar autenticação
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        if (!data.authenticated) {
+          router.push('/login');
+        } else {
+          fetchConfig();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
   }, []);
 
   const fetchConfig = async () => {
@@ -37,8 +58,6 @@ export default function ConfigPage() {
       setConfig(data);
     } catch (error) {
       console.error('Erro ao buscar configuração:', error);
-    } finally {
-      setLoading(false);
     }
   };
 

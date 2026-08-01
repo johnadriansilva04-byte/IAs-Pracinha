@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface Case {
@@ -11,12 +12,33 @@ interface Case {
 }
 
 export default function Home() {
+  const router = useRouter();
   const [cases, setCases] = useState<Case[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    fetchCases();
-  }, []);
+    // Verificar se está logado
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        if (!data.authenticated) {
+          router.push('/login');
+        } else {
+          setIsLoggedIn(true);
+          fetchCases();
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        router.push('/login');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   const fetchCases = async () => {
     try {
@@ -25,8 +47,6 @@ export default function Home() {
       setCases(data);
     } catch (error) {
       console.error('Erro ao buscar casos:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -39,7 +59,6 @@ export default function Home() {
       });
       const data = await response.json();
       setCases([data, ...cases]);
-      // Redirecionar para o chat com a nova conversa
       window.location.href = `/chat/${data.id}`;
     } catch (error) {
       console.error('Erro ao criar caso:', error);
@@ -59,16 +78,45 @@ export default function Home() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/logout', { method: 'POST' });
+      router.push('/login');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 flex items-center justify-center">
+        <div className="text-zinc-500">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return null; // Redirecionou no useEffect
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 p-8">
       <div className="max-w-4xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
-            IAS Pracinha
-          </h1>
-          <p className="text-zinc-600 dark:text-zinc-400">
-            Seu assistente pessoal com memória longa
-          </p>
+        <header className="mb-8 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
+              IAS Pracinha
+            </h1>
+            <p className="text-zinc-600 dark:text-zinc-400">
+              Seu assistente pessoal com memória longa
+            </p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50"
+          >
+            Sair
+          </button>
         </header>
 
         <div className="flex gap-4 mb-6">
@@ -86,9 +134,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {loading ? (
-          <div className="text-center py-12 text-zinc-500">Carregando...</div>
-        ) : cases.length === 0 ? (
+        {cases.length === 0 ? (
           <div className="text-center py-12 text-zinc-500">
             <p className="mb-4">Nenhuma conversa ainda</p>
             <p className="text-sm">Clique em "Nova Conversa" para começar</p>

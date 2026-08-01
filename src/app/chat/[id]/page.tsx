@@ -32,6 +32,25 @@ export default function ChatPage() {
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
+  const router = useRouter();
+
+  useEffect(() => {
+    // Verificar autenticação
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        if (!data.authenticated) {
+          router.push('/login');
+        }
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        router.push('/login');
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     fetchMessages();
