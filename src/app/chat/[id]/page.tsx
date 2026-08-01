@@ -216,6 +216,12 @@ export default function ChatPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Verificar se caseId existe antes de fazer upload
+    if (!caseId) {
+      alert('❌ Erro: ID da conversa não encontrado. Recarregue a página e tente novamente.');
+      return;
+    }
+
     setUploading(true);
 
     try {
