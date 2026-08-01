@@ -48,17 +48,10 @@ export default function Home() {
   };
 
   const deleteCase = async (id: string) => {
-    if (!confirm('Tem certeza que deseja excluir esta conversa? Isso apagará todas as mensagens também.')) {
-      return;
-    }
-    
+    if (!confirm('Tem certeza que deseja excluir esta conversa?')) return;
+
     try {
-      const response = await fetch(`/api/cases/${id}`, { method: 'DELETE' });
-      if (!response.ok) {
-        const error = await response.json();
-        alert('Erro ao excluir: ' + (error.error || 'Erro desconhecido'));
-        return;
-      }
+      await fetch(`/api/cases/${id}`, { method: 'DELETE' });
       setCases(cases.filter(c => c.id !== id));
     } catch (error) {
       console.error('Erro ao deletar caso:', error);
@@ -67,8 +60,8 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800">
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 p-8">
+      <div className="max-w-4xl mx-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">
             IAS Pracinha
@@ -107,23 +100,26 @@ export default function Home() {
                 key={caseItem.id}
                 className="bg-white dark:bg-zinc-800 p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="flex justify-between items-start mb-2">
-                  <Link
-                    href={`/chat/${caseItem.id}`}
-                    className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
-                  >
-                    {caseItem.title}
-                  </Link>
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <Link
+                      href={`/chat/${caseItem.id}`}
+                      className="text-xl font-semibold text-zinc-900 dark:text-zinc-50 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                    >
+                      {caseItem.title}
+                    </Link>
+                    <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+                      Criado em {new Date(caseItem.created_at).toLocaleDateString('pt-BR')}
+                    </p>
+                  </div>
                   <button
                     onClick={() => deleteCase(caseItem.id)}
-                    className="text-red-500 hover:text-red-700 text-sm"
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                    title="Excluir conversa"
                   >
-                    ✕
+                    🗑️
                   </button>
                 </div>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                  Atualizado: {new Date(caseItem.updated_at).toLocaleDateString('pt-BR')}
-                </p>
               </div>
             ))}
           </div>

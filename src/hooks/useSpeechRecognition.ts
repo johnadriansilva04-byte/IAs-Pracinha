@@ -63,9 +63,14 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
   const startListening = useCallback(() => {
     if (recognition && !isListening) {
-      setTranscript('');
-      recognition.start();
-      setIsListening(true);
+      try {
+        recognition.start();
+        setIsListening(true);
+      } catch (error) {
+        console.error('Erro ao iniciar reconhecimento:', error);
+        // Se já estiver iniciado, apenas seta o estado
+        setIsListening(true);
+      }
     }
   }, [recognition, isListening]);
 

@@ -48,18 +48,24 @@ export function useSpeechSynthesis(): UseSpeechSynthesisReturn {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Tentar usar uma voz em português
+    // Tentar usar uma voz feminina em português
     const portugueseVoice = voices.find(voice => 
+      (voice.lang.includes('pt-BR') || voice.lang.includes('pt')) && 
+      (voice.name.includes('Female') || voice.name.includes('Google Português') || voice.name.includes('Maria'))
+    );
+    
+    // Se não encontrar voz feminina específica, usa qualquer voz em português
+    const fallbackVoice = portugueseVoice || voices.find(voice => 
       voice.lang.includes('pt-BR') || voice.lang.includes('pt')
     );
     
-    if (portugueseVoice) {
-      utterance.voice = portugueseVoice;
+    if (fallbackVoice) {
+      utterance.voice = fallbackVoice;
     }
 
     utterance.lang = 'pt-BR';
-    utterance.rate = 1; // Velocidade normal
-    utterance.pitch = 1; // Tom normal
+    utterance.rate = 1.2; // Mais rápida (20% mais rápido)
+    utterance.pitch = 1.1; // Tom levemente mais agudo (voz feminina)
 
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);

@@ -171,11 +171,23 @@ export async function POST(request: NextRequest) {
           history: messagesArray.map(m => ({
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
-          })),
-          systemInstruction: effectiveConfig.system_prompt
+          }))
         });
 
-        const result = await chat.sendMessage(message);
+        // Adicionar system prompt como primeira mensagem se for nova conversa
+        let messageToSend = message;
+        if (messagesArray.length === 0) {
+          messageToSend = `${effectiveConfig.system_prompt}\n\nMinha primeira mensagem: ${message}`;
+        }
+
+        // Adicionar instrução de eficiência baseada no comprimento da mensagem
+        const efficiencyInstruction = message.length < 50 
+          ? "\n\nIMPORTANTE: Responda de forma objetiva e concisa. Seja direto ao ponto, sem enrolação."
+          : "\n\nIMPORTANTE: Responda de forma detalhada e completa quando necessário.";
+
+        messageToSend += efficiencyInstruction;
+
+        const result = await chat.sendMessage(messageToSend);
         const response = await result.response.text();
 
         console.log('[CHAT-GEMINI-SUCCESS] Resposta recebida, tamanho:', response.length);

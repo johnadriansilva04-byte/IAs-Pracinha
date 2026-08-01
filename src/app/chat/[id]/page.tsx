@@ -26,7 +26,9 @@ export default function ChatPage() {
   const [caseTitle, setCaseTitle] = useState('');
   const [editingTitle, setEditingTitle] = useState(false);
   const [autoVoice, setAutoVoice] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
@@ -109,7 +111,7 @@ export default function ChatPage() {
       setSessionMessages([...newSessionMessages, { role: 'assistant', content: data.response }]);
 
       // Falar a resposta se auto-voice estiver ativado
-      if (autoVoice && !data.saved) {
+      if (autoVoice) {
         speak(data.response);
       }
     } catch (error: any) {
@@ -192,6 +194,40 @@ export default function ChatPage() {
     }
   };
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('case_id', caseId);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        alert(`✅ Documento "${data.fileName}" enviado com sucesso!`);
+      } else {
+        throw new Error(data.error);
+      }
+    } catch (error: any) {
+      console.error('Erro ao fazer upload:', error);
+      alert('❌ Erro ao enviar documento: ' + error.message);
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const toggleVoice = () => {
     if (isListening) {
       stopListening();
@@ -244,6 +280,20 @@ export default function ChatPage() {
           >
             💾 Salvar ({sessionMessages.length})
           </button>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {uploading ? '⏳' : '📎 Documento'}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={handleFileUpload}
+            accept=".pdf,.doc,.docx,.txt"
+          />
         </div>
       </header>
 
@@ -291,54 +341,46 @@ export default function ChatPage() {
       </div>
 
       <div className="bg-white dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700 p-4">
-        <div className="max-w-4xl mx-auto space-y-3">
-          <div className="flex gap-2">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex gap-2 items-center">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="Digite sua mensagem..."
+              disabled={loading}
+              className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 disabled:opacity-50"
+            />
+            
             {speechRecognitionSupported && (
               <button
                 onClick={toggleVoice}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   isListening
                     ? 'bg-red-600 hover:bg-red-700 text-white'
                     : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
                 }`}
+                title={isListening ? 'Parar de ouvir' : 'Falar'}
               >
-                {isListening ? '🎙️ Parar' : '🎙️ Falar'}
+                {isListening ? '🎙️' : '🎤'}
               </button>
             )}
             
             {speechSynthesisSupported && (
               <button
                 onClick={() => setAutoVoice(!autoVoice)}
-                className={`px-4 py-3 rounded-lg font-medium transition-colors ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
                   autoVoice
                     ? 'bg-blue-600 hover:bg-blue-700 text-white'
                     : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
                 }`}
+                title={autoVoice ? 'Auto-voz ligado' : 'Auto-voz desligado'}
               >
-                {autoVoice ? '🔊 Auto-Voz ON' : '🔊 Auto-Voz OFF'}
+                🔊
               </button>
             )}
 
-            {isSpeaking && (
-              <button
-                onClick={stopSpeaking}
-                className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
-              >
-                🔇 Parar fala
-              </button>
-            )}
-          </div>
-
-          <div className="flex gap-4">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              placeholder="Digite sua mensagem ou use o microfone..."
-              className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 resize-none"
-              rows={1}
-              disabled={loading}
-            />
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
