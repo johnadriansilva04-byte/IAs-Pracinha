@@ -204,21 +204,52 @@ export async function POST(request: NextRequest) {
 
       // Preparar contexto com rolling summary
       let allMessages = [];
+      let documentContext = '';
+
+      // Buscar documentos relevantes (RAG)
+      if (actualCaseId) {
+        try {
+          const ragResponse = await fetch('/api/rag-query', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case_id: actualCaseId, query: message })
+          });
+          const ragData = await ragResponse.json();
+          
+          if (ragData.success && ragData.document_context) {
+            documentContext = ragData.document_context;
+            console.log('[CHAT-RAG] Contexto de documentos encontrado, tamanho:', documentContext.length);
+          }
+        } catch (error) {
+          console.error('[CHAT-RAG] Erro ao buscar documentos:', error);
+        }
+      }
+
       if (contextSummary) {
-        // Usar apenas context_summary + última mensagem
+        // Usar context_summary + documentos + última mensagem
+        let systemContent = `Resumo do contexto anterior: ${contextSummary}`;
+        if (documentContext) {
+          systemContent += `\n\nDocumentos relevantes:\n${documentContext}`;
+        }
+        
         allMessages = [
-          { role: 'system', content: `Resumo do contexto anterior: ${contextSummary}` },
+          { role: 'system', content: systemContent },
           { role: 'user', content: message }
         ];
-        console.log('[CHAT-CONTEXT] Usando rolling summary no payload');
+        console.log('[CHAT-CONTEXT] Usando rolling summary + RAG no payload');
       } else {
-        // Usar mensagens recentes (últimas 6)
+        // Usar mensagens recentes + documentos
         const recentMessages = getRecentMessages(messagesArray, 6);
+        let userContent = message;
+        if (documentContext) {
+          userContent = `Documentos relevantes:\n${documentContext}\n\nMinha pergunta: ${message}`;
+        }
+        
         allMessages = [
           ...recentMessages.map(m => ({ role: m.role, content: m.content })),
-          { role: 'user', content: message }
+          { role: 'user', content: userContent }
         ];
-        console.log('[CHAT-CONTEXT] Usando mensagens recentes:', recentMessages.length);
+        console.log('[CHAT-CONTEXT] Usando mensagens recentes + RAG:', recentMessages.length);
       }
 
       // Atualizar contador de mensagens no case

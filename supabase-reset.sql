@@ -40,15 +40,49 @@ CREATE TABLE messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabela para chunks de documentos (futuros embeddings RAG)
+-- Tabela para chunks de documentos (RAG com pgvector)
 CREATE TABLE document_chunks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   conversation_id UUID REFERENCES conversations(id) ON DELETE CASCADE,
+  document_name TEXT NOT NULL,
   content TEXT NOT NULL,
   embedding vector(1536),
   metadata JSONB DEFAULT '{}',
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Índice para busca vetorial (cosine similarity)
+CREATE INDEX document_chunks_embedding_idx ON document_chunks 
+USING ivfflat (embedding vector_cosine_ops(vector(1536))) 
+WITH (lists = 100);
+
+-- Função RPC para busca de documentos relevantes
+CREATE OR REPLACE FUNCTION match_documents(
+  query_embedding vector(1536),
+  match_threshold float DEFAULT 0.5,
+  match_count int DEFAULT 5
+)
+RETURNS TABLE (
+  id UUID,
+  document_name TEXT,
+  content TEXT,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    id,
+    document_name,
+    content,
+    1 - (embedding <=> query_embedding) as similarity
+  FROM document_chunks
+  WHERE 1 - (embedding <=> query_embedding) > match_threshold
+  ORDER BY embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;
 
 -- Recriar tabela de configuração do sistema
 CREATE TABLE system_config (
