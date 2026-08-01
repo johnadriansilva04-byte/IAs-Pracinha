@@ -22,6 +22,8 @@ CREATE TABLE conversations (
 CREATE TABLE cases (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL DEFAULT 'Nova Conversa',
+  context_summary TEXT DEFAULT '',
+  message_count INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

@@ -24,19 +24,43 @@ function cleanMarkdown(text: string): string {
     .trim();
 }
 
+// Configurações de modos de resposta
+interface ResponseMode {
+  maxOutputTokens: number;
+  systemInstruction: string;
+}
+
+const RESPONSE_MODES: Record<string, ResponseMode> = {
+  resumo: {
+    maxOutputTokens: 150,
+    systemInstruction: "Seja extremamente sucinto e vá direto ao ponto. Responda em poucas frases."
+  },
+  complexo: {
+    maxOutputTokens: 800,
+    systemInstruction: "Forneça uma resposta detalhada, estruturada e aprofundada."
+  }
+};
+
+// Sliding window para limitar contexto
+function getRecentMessages(messages: any[], limit: number = 6): any[] {
+  if (messages.length <= limit) return messages;
+  return messages.slice(-limit);
+}
+
 console.log('[CHAT-INIT] API inicializada. Google AI Key configurada:', !!GOOGLE_AI_KEY);
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[CHAT-START] === INÍCIO DA REQUISIÇÃO ===');
     const body = await request.json();
-    const { case_id, message, save_conversation } = body;
+    const { case_id, message, save_conversation, mode = 'resumo' } = body;
 
     console.log('[CHAT-PARAMS] Parâmetros recebidos:', {
       case_id: case_id || 'null',
       message_length: message?.length,
       message_preview: message?.substring(0, 50),
-      save_conversation
+      save_conversation,
+      mode
     });
 
     // Validação básica
@@ -141,40 +165,72 @@ export async function POST(request: NextRequest) {
         console.log('[CHAT-MESSAGES] Sem case_id, iniciando chat sem histórico');
       }
 
-      // Preparar contexto
-      const allMessages = [
-        ...messagesArray.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user', content: message }
-      ];
+      // Buscar context_summary do case para rolling summary
+      let contextSummary = '';
+      let messageCount = 0;
+      if (actualCaseId) {
+        try {
+          const { data: caseData, error: caseError } = await supabase
+            .from('cases')
+            .select('context_summary, message_count')
+            .eq('id', actualCaseId)
+            .single();
 
-      const estimatedTokens = compressor.estimateTokens(
-        allMessages.map(m => m.content).join(' ')
-      );
-
-      console.log('[CHAT-TOKENS] Tokens estimados:', estimatedTokens);
-
-      let context = '';
-      if (messagesArray.length > 10 || compressor.shouldCompress(estimatedTokens)) {
-        console.log('[CHAT-COMPRESS] Comprimindo contexto...');
-        const oldMessages = messagesArray.slice(0, -5);
-        const recentMessages = messagesArray.slice(-5);
-
-        if (oldMessages.length > 0) {
-          try {
-            const compressed = await compressor.compressMessages(
-              oldMessages.map(m => ({ role: m.role, content: m.content }))
-            );
-            context = await compressor.reconstructContext(compressed, recentMessages);
-            console.log('[CHAT-COMPRESS-SUCCESS] Contexto comprimido');
-          } catch (compressError) {
-            console.error('[CHAT-COMPRESS-ERROR] Erro ao comprimir:', compressError);
-            context = recentMessages.map(m => `${m.role}: ${m.content}`).join('\n');
+          if (!caseError && caseData) {
+            contextSummary = caseData.context_summary || '';
+            messageCount = caseData.message_count || 0;
+            console.log('[CHAT-CONTEXT] Context summary encontrado, tamanho:', contextSummary.length);
+            console.log('[CHAT-CONTEXT] Message count:', messageCount);
           }
-        } else {
-          context = recentMessages.map(m => `${m.role}: ${m.content}`).join('\n');
+        } catch (error) {
+          console.error('[CHAT-CONTEXT] Erro ao buscar context summary:', error);
         }
+      }
+
+      // Verificar se precisa de rolling summary (10 mensagens)
+      if (messageCount >= 10) {
+        console.log('[CHAT-ROLLING-SUMMARY] Trigger rolling summary -', messageCount, 'mensagens');
+        try {
+          await fetch('/api/rolling-summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ case_id: actualCaseId })
+          });
+          console.log('[CHAT-ROLLING-SUMMARY] Rolling summary concluído');
+        } catch (error) {
+          console.error('[CHAT-ROLLING-SUMMARY] Erro ao executar rolling summary:', error);
+        }
+      }
+
+      // Preparar contexto com rolling summary
+      let allMessages = [];
+      if (contextSummary) {
+        // Usar apenas context_summary + última mensagem
+        allMessages = [
+          { role: 'system', content: `Resumo do contexto anterior: ${contextSummary}` },
+          { role: 'user', content: message }
+        ];
+        console.log('[CHAT-CONTEXT] Usando rolling summary no payload');
       } else {
-        context = allMessages.map(m => `${m.role}: ${m.content}`).join('\n');
+        // Usar mensagens recentes (últimas 6)
+        const recentMessages = getRecentMessages(messagesArray, 6);
+        allMessages = [
+          ...recentMessages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user', content: message }
+        ];
+        console.log('[CHAT-CONTEXT] Usando mensagens recentes:', recentMessages.length);
+      }
+
+      // Atualizar contador de mensagens no case
+      if (actualCaseId) {
+        try {
+          await supabase
+            .from('cases')
+            .update({ message_count: messageCount + 1 })
+            .eq('id', actualCaseId);
+        } catch (error) {
+          console.error('[CHAT-COUNT] Erro ao atualizar contador:', error);
+        }
       }
 
       console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 2.5 Pro...');
@@ -190,15 +246,17 @@ export async function POST(request: NextRequest) {
         });
 
         const chat = model.startChat({
-          history: messagesArray.map(m => ({
+          history: allMessages.map(m => ({
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
           }))
         });
 
-        // Adicionar system prompt como primeira mensagem se for nova conversa
+        // Adicionar system prompt e context summary se necessário
         let messageToSend = message;
-        if (messagesArray.length === 0) {
+        if (contextSummary) {
+          messageToSend = `Contexto anterior: ${contextSummary}\n\nMinha mensagem: ${message}`;
+        } else if (messagesArray.length === 0) {
           messageToSend = `${effectiveConfig.system_prompt}\n\nMinha primeira mensagem: ${message}`;
         }
 
