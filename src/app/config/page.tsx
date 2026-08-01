@@ -49,7 +49,6 @@ export default function ConfigPage() {
 
     checkAuth();
   }, [router]);
-  }, []);
 
   const fetchConfig = async () => {
     try {

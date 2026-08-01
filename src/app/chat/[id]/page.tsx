@@ -32,7 +32,6 @@ export default function ChatPage() {
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
-  const router = useRouter();
 
   useEffect(() => {
     // Verificar autenticação
