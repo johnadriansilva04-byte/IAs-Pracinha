@@ -10,6 +10,20 @@ const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
 const compressor = new ContextCompressor();
 
+// Função para limpar markdown do texto
+function cleanMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s/g, '') // Remove cerquilhas de títulos
+    .replace(/\*\*/g, '') // Remove negrito (**)
+    .replace(/\*/g, '') // Remove itálico (*)
+    .replace(/^- /gm, '') // Remove bullet points
+    .replace(/^\d+\.\s/gm, '') // Remove listas numeradas
+    .replace(/```[\s\S]*?```/g, '') // Remove código
+    .replace(/`([^`]+)`/g, '$1') // Remove código inline
+    .replace(/\n{3,}/g, '\n\n') // Remove excesso de quebras de linha
+    .trim();
+}
+
 console.log('[CHAT-INIT] API inicializada. Google AI Key configurada:', !!GOOGLE_AI_KEY);
 
 export async function POST(request: NextRequest) {
@@ -165,7 +179,15 @@ export async function POST(request: NextRequest) {
 
       console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 2.5 Pro...');
       try {
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+        const model = genAI.getGenerativeModel({ 
+          model: 'gemini-2.5-pro',
+          generationConfig: {
+            maxOutputTokens: 150, // Limitar respostas curtas
+            temperature: 0.65, // Equilibrado entre criatividade e precisão
+            topP: 0.8,
+            topK: 40
+          }
+        });
 
         const chat = model.startChat({
           history: messagesArray.map(m => ({
@@ -180,15 +202,14 @@ export async function POST(request: NextRequest) {
           messageToSend = `${effectiveConfig.system_prompt}\n\nMinha primeira mensagem: ${message}`;
         }
 
-        // Adicionar instrução de eficiência baseada no comprimento da mensagem
-        const efficiencyInstruction = message.length < 50 
-          ? "\n\nIMPORTANTE: Responda de forma objetiva e concisa. Seja direto ao ponto, sem enrolação."
-          : "\n\nIMPORTANTE: Responda de forma detalhada e completa quando necessário.";
-
-        messageToSend += efficiencyInstruction;
+        // INSTRUÇÃO DE RESPOSTA CURTA PARA TODAS AS MENSAGENS
+        messageToSend += "\n\nIMPORTANTE: Responda sempre de forma ultra curta e direta. Máximo 2-3 frases. Sem explicações longas. Sem formatação markdown. Apenas texto puro.";
 
         const result = await chat.sendMessage(messageToSend);
-        const response = await result.response.text();
+        let response = await result.response.text();
+        
+        // Limpar markdown do texto de resposta
+        response = cleanMarkdown(response);
 
         console.log('[CHAT-GEMINI-SUCCESS] Resposta recebida, tamanho:', response.length);
 
