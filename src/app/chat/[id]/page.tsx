@@ -65,15 +65,6 @@ export default function ChatPage() {
     }
   }, [transcript]);
 
-  // Limpar conexão Live ao sair
-  useEffect(() => {
-    return () => {
-      if (geminiLiveRef.current) {
-        geminiLiveRef.current.disconnect();
-      }
-    };
-  }, []);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
