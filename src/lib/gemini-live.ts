@@ -24,13 +24,15 @@ export class GeminiLiveService {
 
   constructor(config: GeminiLiveConfig) {
     this.config = {
-      model: 'gemini-live-2.5-flash-native-audio',
+      model: 'gemini-2.5-flash', // Usando modelo padrão que funciona
       ...config
     };
   }
 
   async connect(): Promise<void> {
     const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=${this.config.apiKey}`;
+    
+    console.log('[GEMINI-LIVE] Conectando à API:', wsUrl.substring(0, 50) + '...');
     
     this.ws = new WebSocket(wsUrl);
     
@@ -45,7 +47,7 @@ export class GeminiLiveService {
 
       this.ws.onerror = (error) => {
         console.error('[GEMINI-LIVE] Erro WebSocket:', error);
-        reject(error);
+        reject(new Error('Erro ao conectar à API Gemini Live. Verifique sua API key.'));
       };
 
       this.ws.onclose = () => {
