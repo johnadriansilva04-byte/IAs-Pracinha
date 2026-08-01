@@ -412,19 +412,19 @@ export default function ChatPage() {
             <div className="text-center py-12 text-zinc-500">
               <p className="mb-4">Comece a conversa!</p>
               <p className="text-sm">Digite sua mensagem abaixo ou use o microfone</p>
-            </div>
-          {loading && (
-            <div className="flex justify-center">
-              <div className="bg-zinc-100 dark:bg-zinc-800 px-6 py-3 rounded-full flex items-center gap-2">
-                <div className="flex gap-1">
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                  <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              {loading && (
+                <div className="flex justify-center mt-4">
+                  <div className="bg-zinc-100 dark:bg-zinc-800 px-6 py-3 rounded-full flex items-center gap-2">
+                    <div className="flex gap-1">
+                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                    </div>
+                    <span className="text-sm text-zinc-600 dark:text-zinc-400">Pracinha está pensando...</span>
+                  </div>
                 </div>
-                <span className="text-sm text-zinc-600 dark:text-zinc-400">Pracinha está pensando...</span>
-              </div>
+              )}
             </div>
-          )}
           ) : (
             allMessages.map((message) => (
               <div
