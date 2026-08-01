@@ -292,7 +292,7 @@ export default function ChatPage() {
             type="file"
             className="hidden"
             onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.txt"
+            accept="*"
           />
         </div>
       </header>

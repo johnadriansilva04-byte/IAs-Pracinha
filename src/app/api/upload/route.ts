@@ -22,6 +22,54 @@ export async function POST(request: NextRequest) {
       case_id
     });
 
+    // Validar tamanho (limite 50MB)
+    const maxSize = 50 * 1024 * 1024; // 50MB
+    if (file.size > maxSize) {
+      return NextResponse.json({ 
+        error: 'Arquivo muito grande. Máximo 50MB.' 
+      }, { status: 400 });
+    }
+
+    // Validar tipo MIME
+    const allowedTypes = [
+      // Documentos
+      'application/pdf',
+      'application/msword',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/plain',
+      'application/rtf',
+      // Imagens
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'image/svg+xml',
+      // Vídeos
+      'video/mp4',
+      'video/webm',
+      'video/quicktime',
+      'video/x-msvideo',
+      'video/x-ms-wmv',
+      // Áudio
+      'audio/mpeg',
+      'audio/wav',
+      'audio/ogg',
+      'audio/mp4',
+      'audio/x-m4a',
+      // Arquivos compactados
+      'application/zip',
+      'application/x-zip-compressed',
+      'application/x-rar-compressed',
+      'application/vnd.rar'
+    ];
+
+    if (!allowedTypes.includes(file.type) && !file.type.startsWith('image/') && !file.type.startsWith('video/') && !file.type.startsWith('audio/')) {
+      return NextResponse.json({ 
+        error: 'Tipo de arquivo não suportado' 
+      }, { status: 400 });
+    }
+
     // Converter arquivo para base64
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
