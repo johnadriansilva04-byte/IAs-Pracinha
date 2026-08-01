@@ -28,8 +28,12 @@ export default function ChatPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [autoVoice, setAutoVoice] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [liveVoiceMode, setLiveVoiceMode] = useState(false);
+  const [liveConnected, setLiveConnected] = useState(false);
+  const [liveRecording, setLiveRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const geminiLiveRef = useRef<GeminiLiveService | null>(null);
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
@@ -65,6 +69,15 @@ export default function ChatPage() {
       setInput(transcript);
     }
   }, [transcript]);
+
+  // Limpar conexão Live ao sair
+  useEffect(() => {
+    return () => {
+      if (geminiLiveRef.current) {
+        geminiLiveRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -261,6 +274,58 @@ export default function ChatPage() {
     }
   };
 
+  const toggleLiveVoice = async () => {
+    if (liveVoiceMode) {
+      // Desconectar
+      if (geminiLiveRef.current) {
+        geminiLiveRef.current.disconnect();
+        geminiLiveRef.current = null;
+      }
+      setLiveVoiceMode(false);
+      setLiveConnected(false);
+      setLiveRecording(false);
+    } else {
+      // Conectar
+      try {
+        setLiveVoiceMode(true);
+        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || '';
+        
+        // Buscar system prompt
+        const configResponse = await fetch('/api/live-config');
+        const configData = await configResponse.json();
+        
+        geminiLiveRef.current = new GeminiLiveService({
+          apiKey,
+          systemPrompt: configData.systemPrompt
+        });
+
+        await geminiLiveRef.current.connect();
+        setLiveConnected(true);
+      } catch (error: any) {
+        console.error('Erro ao conectar Live API:', error);
+        alert('Erro ao conectar voz nativa: ' + error.message);
+        setLiveVoiceMode(false);
+      }
+    }
+  };
+
+  const toggleLiveRecording = async () => {
+    if (!geminiLiveRef.current) return;
+
+    try {
+      if (liveRecording) {
+        geminiLiveRef.current.stopRecording();
+        setLiveRecording(false);
+      } else {
+        await geminiLiveRef.current.startRecording();
+        setLiveRecording(true);
+      }
+    } catch (error: any) {
+      console.error('Erro ao controlar gravação:', error);
+      alert('Erro ao controlar gravação: ' + error.message);
+    }
+  };
+
   const allMessages = [...messages, ...sessionMessages.map((m, i) => ({
     id: `session-${i}`,
     role: m.role as 'user' | 'assistant',
@@ -311,6 +376,17 @@ export default function ChatPage() {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? '⏳' : '📎 Documento'}
+          </button>
+          <button
+            onClick={toggleLiveVoice}
+            disabled={loading}
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+              liveVoiceMode 
+                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+            }`}
+          >
+            {liveVoiceMode ? '🎙️ Voz Nativa' : '🎙️ Voz Nativa'}
           </button>
           <input
             ref={fileInputRef}
@@ -379,52 +455,89 @@ export default function ChatPage() {
 
       <div className="bg-white dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700 p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua mensagem..."
-              disabled={loading}
-              className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 disabled:opacity-50"
-            />
-            
-            {speechRecognitionSupported && (
-              <button
-                onClick={toggleVoice}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                  isListening
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                }`}
-                title={isListening ? 'Parar de ouvir' : 'Falar'}
-              >
-                {isListening ? '🎙️' : '🎤'}
-              </button>
-            )}
-            
-            {speechSynthesisSupported && (
-              <button
-                onClick={() => setAutoVoice(!autoVoice)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                  autoVoice
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                }`}
-                title={autoVoice ? 'Auto-voz ligado' : 'Auto-voz desligado'}
-              >
-                🔊
-              </button>
-            )}
+          {/* Controles de Voz Nativa quando ativo */}
+          {liveVoiceMode && (
+            <div className="mb-4 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${liveConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                  <span className="text-sm font-medium text-purple-900 dark:text-purple-300">
+                    {liveConnected ? 'Conectado ao Gemini Live' : 'Desconectado'}
+                  </span>
+                </div>
+                {liveConnected && (
+                  <button
+                    onClick={toggleLiveRecording}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      liveRecording
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    }`}
+                  >
+                    {liveRecording ? '⏹️ Parar Gravação' : '🎙️ Iniciar Gravação'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
-            <button
-              onClick={sendMessage}
-              disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? '...' : 'Enviar'}
-            </button>
+          <div className="flex gap-2 items-center">
+            {!liveVoiceMode && (
+              <>
+                <input
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="Digite sua mensagem..."
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 disabled:opacity-50"
+                />
+                
+                {speechRecognitionSupported && (
+                  <button
+                    onClick={toggleVoice}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      isListening
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+                    }`}
+                    title={isListening ? 'Parar de ouvir' : 'Falar'}
+                  >
+                    {isListening ? '🎙️' : '🎤'}
+                  </button>
+                )}
+                
+                {speechSynthesisSupported && (
+                  <button
+                    onClick={() => setAutoVoice(!autoVoice)}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                      autoVoice
+                        ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                        : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+                    }`}
+                    title={autoVoice ? 'Auto-voz ligado' : 'Auto-voz desligado'}
+                  >
+                    🔊
+                  </button>
+                )}
+
+                <button
+                  onClick={sendMessage}
+                  disabled={loading || !input.trim()}
+                  className="px-6 py-3 bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? '...' : 'Enviar'}
+                </button>
+              </>
+            )}
+            
+            {liveVoiceMode && (
+              <div className="flex-1 text-center text-purple-700 dark:text-purple-300">
+                <p className="font-medium">Modo Voz Nativa Ativo</p>
+                <p className="text-sm opacity-75">Use os controles acima para gravar</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
