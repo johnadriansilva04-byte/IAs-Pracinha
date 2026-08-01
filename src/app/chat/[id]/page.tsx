@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
-import { GeminiLiveService } from '@/lib/gemini-live';
 
 interface Message {
   id: string;
@@ -28,12 +27,8 @@ export default function ChatPage() {
   const [editingTitle, setEditingTitle] = useState(false);
   const [autoVoice, setAutoVoice] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [liveVoiceMode, setLiveVoiceMode] = useState(false);
-  const [liveConnected, setLiveConnected] = useState(false);
-  const [liveRecording, setLiveRecording] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const geminiLiveRef = useRef<GeminiLiveService | null>(null);
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
@@ -274,58 +269,6 @@ export default function ChatPage() {
     }
   };
 
-  const toggleLiveVoice = async () => {
-    if (liveVoiceMode) {
-      // Desconectar
-      if (geminiLiveRef.current) {
-        geminiLiveRef.current.disconnect();
-        geminiLiveRef.current = null;
-      }
-      setLiveVoiceMode(false);
-      setLiveConnected(false);
-      setLiveRecording(false);
-    } else {
-      // Conectar
-      try {
-        setLiveVoiceMode(true);
-        const apiKey = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY || '';
-        
-        // Buscar system prompt
-        const configResponse = await fetch('/api/live-config');
-        const configData = await configResponse.json();
-        
-        geminiLiveRef.current = new GeminiLiveService({
-          apiKey,
-          systemPrompt: configData.systemPrompt
-        });
-
-        await geminiLiveRef.current.connect();
-        setLiveConnected(true);
-      } catch (error: any) {
-        console.error('Erro ao conectar Live API:', error);
-        alert('Erro ao conectar voz nativa: ' + error.message);
-        setLiveVoiceMode(false);
-      }
-    }
-  };
-
-  const toggleLiveRecording = async () => {
-    if (!geminiLiveRef.current) return;
-
-    try {
-      if (liveRecording) {
-        geminiLiveRef.current.stopRecording();
-        setLiveRecording(false);
-      } else {
-        await geminiLiveRef.current.startRecording();
-        setLiveRecording(true);
-      }
-    } catch (error: any) {
-      console.error('Erro ao controlar gravação:', error);
-      alert('Erro ao controlar gravação: ' + error.message);
-    }
-  };
-
   const allMessages = [...messages, ...sessionMessages.map((m, i) => ({
     id: `session-${i}`,
     role: m.role as 'user' | 'assistant',
@@ -376,17 +319,6 @@ export default function ChatPage() {
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {uploading ? '⏳' : '📎 Documento'}
-          </button>
-          <button
-            onClick={toggleLiveVoice}
-            disabled={loading}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              liveVoiceMode 
-                ? 'bg-purple-600 hover:bg-purple-700 text-white' 
-                : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-            }`}
-          >
-            {liveVoiceMode ? '🎙️ Voz Nativa' : '🎙️ Voz Nativa'}
           </button>
           <input
             ref={fileInputRef}
