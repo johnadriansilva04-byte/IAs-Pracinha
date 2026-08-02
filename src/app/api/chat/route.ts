@@ -314,10 +314,10 @@ export async function POST(request: NextRequest) {
         console.log('[CHAT-GEMINI-FINAL] Resposta final (sem limpeza):', response);
         console.log('[CHAT-GEMINI-FINAL] Tamanho final:', response.length);
 
-        // Verificar se resposta está vazia
+        // Se resposta estiver vazia, usar resposta padrão em vez de erro
         if (!response || response.trim().length === 0) {
-          console.error('[CHAT-GEMINI-ERROR] Resposta está VAZIA!');
-          throw new Error('A resposta do Gemini está vazia');
+          console.error('[CHAT-GEMINI-WARNING] Resposta está VAZIA, usando resposta padrão');
+          response = 'Desculpe, não consegui gerar uma resposta. Por favor, tente novamente com uma mensagem diferente.';
         }
 
         // Salvar mensagens no banco (se tiver case_id e passar no filtro)
