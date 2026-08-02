@@ -30,10 +30,15 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // Cache de respostas e rate limiting
+  // Cache de respostas e rate limiting (desabilitado temporariamente)
   const responseCache = useRef<Map<string, string>>(new Map());
   const lastRequestTime = useRef<number>(0);
   const MIN_BETWEEN_REQUESTS = 1000; // 1 segundo entre requisições
+  const CACHE_DISABLED = true; // Cache desabilitado para evitar loops
+  
+  if (CACHE_DISABLED) {
+    responseCache.current.clear();
+  }
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
@@ -165,9 +170,11 @@ export default function ChatPage() {
       // Adicionar resposta do assistente à sessão
       setSessionMessages([...newSessionMessages, { role: 'assistant', content: data.response }]);
       
-      // Salvar no cache
-      responseCache.current.set(cacheKey, data.response);
-      console.log('[FRONTEND] Resposta salva no cache');
+      // Salvar no cache (desabilitado temporariamente)
+      if (!CACHE_DISABLED) {
+        responseCache.current.set(cacheKey, data.response);
+        console.log('[FRONTEND] Resposta salva no cache');
+      }
 
       // Falar a resposta se auto-voice estiver ativado
       if (autoVoice) {
