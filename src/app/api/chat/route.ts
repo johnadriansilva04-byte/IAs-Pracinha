@@ -269,11 +269,11 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 2.5 Pro...');
+      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 1.5 Flash...');
       try {
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-2.5-pro',
-          systemInstruction: effectiveConfig.system_prompt,
+          model: 'gemini-1.5-flash',
+          // systemInstruction: effectiveConfig.system_prompt, // Removido temporariamente para teste
           generationConfig: {
             maxOutputTokens: 1000, // Aumentado para respostas mais completas
             temperature: 0.7, // Levemente mais criativo
@@ -289,11 +289,12 @@ export async function POST(request: NextRequest) {
           }))
         });
 
-        // Adicionar system prompt e context summary se necessário
+        // Adicionar context summary se necessário
         let messageToSend = message;
         if (contextSummary) {
           messageToSend = `Contexto anterior: ${contextSummary}\n\nMinha mensagem: ${message}`;
         } else if (messagesArray.length === 0) {
+          // Adicionar system prompt na primeira mensagem (temporiário)
           messageToSend = `${effectiveConfig.system_prompt}\n\nMinha primeira mensagem: ${message}`;
         }
 
@@ -399,9 +400,22 @@ export async function POST(request: NextRequest) {
         console.error('[CHAT-GEMINI-ERROR] Erro ao chamar Gemini:', {
           message: geminiError.message,
           code: geminiError.code,
-          stack: geminiError.stack
+          stack: geminiError.stack,
+          status: geminiError.status,
+          details: geminiError.details
         });
-        throw new Error(`Erro ao chamar API do Gemini: ${geminiError.message}`);
+        
+        // Erro mais específico para o usuário
+        let errorMessage = 'Erro ao chamar API do Gemini';
+        if (geminiError.message?.includes('quota') || geminiError.message?.includes('429')) {
+          errorMessage = 'Limite de uso da API Google excedido. Tente novamente mais tarde.';
+        } else if (geminiError.message?.includes('API key') || geminiError.message?.includes('401') || geminiError.message?.includes('403')) {
+          errorMessage = 'Erro na chave API do Google. Verifique sua configuração.';
+        } else if (geminiError.message) {
+          errorMessage = `Erro na API do Gemini: ${geminiError.message}`;
+        }
+        
+        throw new Error(errorMessage);
       }
     });
   } catch (error: any) {
