@@ -294,10 +294,22 @@ export async function POST(request: NextRequest) {
         const result = await chat.sendMessage(messageToSend);
         let response = await result.response.text();
         
+        console.log('[CHAT-GEMINI-RAW] Resposta bruta:', response);
+        console.log('[CHAT-GEMINI-RAW] Tamanho bruto:', response.length);
+        
         // Limpar markdown do texto de resposta
         response = cleanMarkdown(response);
+        
+        console.log('[CHAT-GEMINI-CLEANED] Resposta limpa:', response);
+        console.log('[CHAT-GEMINI-CLEANED] Tamanho limpo:', response.length);
 
-        console.log('[CHAT-GEMINI-SUCCESS] Resposta recebida, tamanho:', response.length);
+        // Se a resposta ficar vazia após limpar, usar a resposta original
+        if (!response || response.trim().length === 0) {
+          console.warn('[CHAT-GEMINI-WARNING] Resposta ficou vazia após limpeza, usando original');
+          response = await result.response.text();
+        }
+
+        console.log('[CHAT-GEMINI-SUCCESS] Resposta final, tamanho:', response.length);
 
         // Salvar mensagens no banco (se tiver case_id e passar no filtro)
         if (actualCaseId) {

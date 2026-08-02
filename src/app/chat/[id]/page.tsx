@@ -268,14 +268,16 @@ export default function ChatPage() {
   }))];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-900 dark:to-zinc-800 flex flex-col">
-      <header className="bg-white dark:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 p-4">
-        <div className="max-w-4xl mx-auto flex items-center gap-4">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50 dark:from-zinc-900 dark:via-zinc-800 dark:to-zinc-900 flex flex-col">
+      <header className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-lg border-b border-zinc-200 dark:border-zinc-700 p-4 shadow-sm">
+        <div className="max-w-4xl mx-auto flex items-center gap-3">
           <Link
             href="/"
-            className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50"
+            className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50 transition-all"
           >
-            ← Voltar
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
           </Link>
           {editingTitle ? (
             <input
@@ -286,67 +288,97 @@ export default function ChatPage() {
               onKeyDown={(e) => {
                 if (e.key === 'Enter') updateTitle(caseTitle);
               }}
-              className="flex-1 px-3 py-1 border border-zinc-300 dark:border-zinc-600 rounded bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50"
+              className="flex-1 px-4 py-2 border-2 border-emerald-500 dark:border-emerald-600 rounded-xl bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 font-medium focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:focus:ring-emerald-700"
               autoFocus
             />
           ) : (
             <h1
-              className="flex-1 text-xl font-semibold text-zinc-900 dark:text-zinc-50 cursor-pointer hover:opacity-80"
+              className="flex-1 text-xl font-bold text-zinc-900 dark:text-zinc-50 cursor-pointer hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors flex items-center gap-2"
               onClick={() => setEditingTitle(true)}
             >
+              <span className="text-2xl">🎖️</span>
               {caseTitle || 'Nova Conversa'}
             </h1>
           )}
-          <button
-            onClick={saveConversation}
-            disabled={sessionMessages.length === 0}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            💾 Salvar ({sessionMessages.length})
-          </button>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {uploading ? '⏳' : '📎 Documento'}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleFileUpload}
-            accept="*"
-          />
+          <div className="flex gap-2">
+            <button
+              onClick={saveConversation}
+              disabled={sessionMessages.length === 0}
+              className="px-4 py-2 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <span>💾</span>
+              <span className="hidden sm:inline">Salvar</span>
+              {sessionMessages.length > 0 && (
+                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">{sessionMessages.length}</span>
+              )}
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-medium transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <span>{uploading ? '⏳' : '📎'}</span>
+              <span className="hidden sm:inline">Documento</span>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={handleFileUpload}
+              accept="*"
+            />
+          </div>
         </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-4xl mx-auto space-y-4">
+        <div className="max-w-4xl mx-auto space-y-6">
           {sessionMessages.length > 0 && (
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-3 rounded-lg">
-              <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                ⚠️ {sessionMessages.length} mensagens não salvas na memória. Clique em "Salvar" para persistir no banco.
-              </p>
+            <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border-2 border-amber-300 dark:border-amber-700 p-4 rounded-xl shadow-sm animate-pulse">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">⚠️</span>
+                <div>
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {sessionMessages.length} mensagens não salvas
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">Clique em "Salvar" para persistir no banco</p>
+                </div>
+              </div>
             </div>
           )}
           
           {allMessages.length === 0 ? (
-            <div className="text-center py-12 text-zinc-500">
-              <p className="mb-4">Comece a conversa!</p>
-              <p className="text-sm">Digite sua mensagem abaixo ou use o microfone</p>
-              {loading && (
-                <div className="flex justify-center mt-4">
-                  <div className="bg-zinc-100 dark:bg-zinc-800 px-6 py-3 rounded-full flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-zinc-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                    <span className="text-sm text-zinc-600 dark:text-zinc-400">Pracinha está pensando...</span>
+            <div className="text-center py-16">
+              <div className="mb-6">
+                <div className="text-6xl mb-4">🎖️</div>
+                <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">Bem-vindo ao Pracinha</h2>
+                <p className="text-zinc-600 dark:text-zinc-400">Seu assistente da Força Expedicionária Brasileira</p>
+              </div>
+              <div className="bg-white dark:bg-zinc-800 rounded-2xl p-6 shadow-lg max-w-md mx-auto">
+                <p className="text-zinc-700 dark:text-zinc-300 mb-4">Comece a conversa!</p>
+                <div className="flex justify-center gap-4 text-sm text-zinc-500 dark:text-zinc-400">
+                  <div className="flex items-center gap-2">
+                    <span>⌨️</span>
+                    <span>Digite sua mensagem</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span>🎤</span>
+                    <span>Use o microfone</span>
                   </div>
                 </div>
-              )}
+                {loading && (
+                  <div className="flex justify-center mt-6">
+                    <div className="bg-gradient-to-r from-emerald-100 to-emerald-200 dark:from-emerald-900/30 dark:to-emerald-800/30 px-6 py-4 rounded-2xl flex items-center gap-3 shadow-md">
+                      <div className="flex gap-1">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                      </div>
+                      <span className="text-sm font-medium text-emerald-700 dark:text-emerald-300">Pracinha está pensando...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           ) : (
             allMessages.map((message) => (
@@ -355,14 +387,20 @@ export default function ChatPage() {
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[80%] p-4 rounded-lg ${
+                  className={`max-w-[85%] p-5 rounded-2xl shadow-md ${
                     message.role === 'user'
-                      ? 'bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900'
-                      : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 shadow-sm'
+                      ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 text-white rounded-br-none'
+                      : 'bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-50 rounded-bl-none border border-zinc-200 dark:border-zinc-700'
                   }`}
                 >
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs mt-2 opacity-60">
+                  <div className="flex items-start gap-2 mb-2">
+                    <span className="text-lg">{message.role === 'user' ? '👤' : '🎖️'}</span>
+                    <span className="text-xs font-semibold opacity-70">
+                      {message.role === 'user' ? 'VOCÊ' : 'PRACINHA'}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="text-xs mt-3 opacity-60">
                     {new Date(message.created_at).toLocaleTimeString('pt-BR', {
                       hour: '2-digit',
                       minute: '2-digit'
@@ -376,53 +414,88 @@ export default function ChatPage() {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700 p-4">
+      <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-lg border-t border-zinc-200 dark:border-zinc-700 p-4 shadow-lg">
         <div className="max-w-4xl mx-auto">
-          <div className="flex gap-2 items-center">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua mensagem..."
-              disabled={loading}
-              className="flex-1 px-4 py-3 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 disabled:opacity-50"
-            />
+          <div className="flex gap-3 items-center">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Digite sua mensagem para o Pracinha..."
+                disabled={loading}
+                className="w-full px-5 py-4 border-2 border-zinc-300 dark:border-zinc-600 rounded-2xl bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-50 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:focus:ring-emerald-600 focus:border-transparent transition-all shadow-sm"
+              />
+              {input && (
+                <button
+                  onClick={() => setInput('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
             
             {speechRecognitionSupported && (
               <button
                 onClick={toggleVoice}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                disabled={loading}
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   isListening
-                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                }`}
+                    ? 'bg-gradient-to-br from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white scale-105'
+                    : 'bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 text-zinc-700 dark:text-zinc-300 hover:from-zinc-300 hover:to-zinc-400 dark:hover:from-zinc-600 dark:hover:to-zinc-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={isListening ? 'Parar de ouvir' : 'Falar'}
               >
-                {isListening ? '🎙️' : '🎤'}
+                {isListening ? (
+                  <div className="flex gap-1">
+                    <div className="w-1 h-4 bg-white rounded-full animate-pulse" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1 h-6 bg-white rounded-full animate-pulse" style={{ animationDelay: '100ms' }}></div>
+                    <div className="w-1 h-3 bg-white rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                  </div>
+                ) : (
+                  <span className="text-2xl">🎤</span>
+                )}
               </button>
             )}
             
             {speechSynthesisSupported && (
               <button
                 onClick={() => setAutoVoice(!autoVoice)}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                disabled={loading}
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all shadow-md ${
                   autoVoice
-                    ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                    : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                }`}
+                    ? 'bg-gradient-to-br from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white'
+                    : 'bg-gradient-to-br from-zinc-200 to-zinc-300 dark:from-zinc-700 dark:to-zinc-600 text-zinc-700 dark:text-zinc-300 hover:from-zinc-300 hover:to-zinc-400 dark:hover:from-zinc-600 dark:hover:to-zinc-500'
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
                 title={autoVoice ? 'Auto-voz ligado' : 'Auto-voz desligado'}
               >
-                🔊
+                <span className="text-2xl">{autoVoice ? '🔊' : '🔇'}</span>
               </button>
             )}
 
             <button
               onClick={sendMessage}
               disabled={loading || !input.trim()}
-              className="px-6 py-3 bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-2xl font-bold transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
-              {loading ? '...' : 'Enviar'}
+              {loading ? (
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                </div>
+              ) : (
+                <>
+                  <span>Enviar</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                </>
+              )}
             </button>
           </div>
         </div>
