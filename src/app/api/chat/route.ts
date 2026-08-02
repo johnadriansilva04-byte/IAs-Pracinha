@@ -273,10 +273,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 1.5 Pro...');
+      console.log('[CHAT-GEMINI-START] Enviando mensagem para Gemini 2.5 Pro...');
       try {
         const model = genAI.getGenerativeModel({ 
-          model: 'gemini-1.5-pro',
+          model: 'gemini-2.5-pro',
           // systemInstruction: effectiveConfig.system_prompt, // Removido temporariamente para teste
           generationConfig: {
             maxOutputTokens: 500, // Reduzido para economizar tokens
