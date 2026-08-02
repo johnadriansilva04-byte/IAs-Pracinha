@@ -139,6 +139,7 @@ export async function POST(request: NextRequest) {
       const effectiveConfig = config || DEFAULT_CONFIG;
 
       console.log('[CHAT-GEMINI] Google AI Key configurada:', !!GOOGLE_AI_KEY);
+      console.log('[CHAT-SYSTEM-PROMPT] Usando system prompt:', effectiveConfig.system_prompt?.substring(0, 100) + '...');
 
       // Buscar mensagens anteriores apenas se tiver case_id
       let messagesArray: any[] = [];
@@ -268,6 +269,7 @@ export async function POST(request: NextRequest) {
       try {
         const model = genAI.getGenerativeModel({ 
           model: 'gemini-2.5-pro',
+          systemInstruction: effectiveConfig.system_prompt,
           generationConfig: {
             maxOutputTokens: 1000, // Aumentado para respostas mais completas
             temperature: 0.7, // Levemente mais criativo

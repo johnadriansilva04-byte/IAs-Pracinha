@@ -415,7 +415,7 @@ export default function ChatPage() {
                   <div className="flex items-start gap-2 mb-2">
                     <span className="text-lg">{message.role === 'user' ? '👤' : '🎖️'}</span>
                     <span className="text-xs font-semibold opacity-70">
-                      {message.role === 'user' ? 'VOCÊ' : 'PRACINHA'}
+                      {message.role === 'user' ? 'VOCÊ' : 'Pracinha'}
                     </span>
                   </div>
                   <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
