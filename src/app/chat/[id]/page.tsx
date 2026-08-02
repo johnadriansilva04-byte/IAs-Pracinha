@@ -113,6 +113,8 @@ export default function ChatPage() {
       const data = await response.json();
       
       console.log('[FRONTEND] Resposta do chat:', { status: response.status, data });
+      console.log('[FRONTEND] Conteúdo da resposta:', data.response);
+      console.log('[FRONTEND] Tamanho da resposta:', data.response?.length);
       
       if (data.error) {
         throw new Error(data.error);
@@ -125,6 +127,13 @@ export default function ChatPage() {
         return;
       }
 
+      // Verificar se a resposta existe e não está vazia
+      if (!data.response || data.response.trim().length === 0) {
+        console.error('[FRONTEND-ERROR] Resposta vazia recebida do backend!');
+        throw new Error('Resposta vazia recebida do servidor');
+      }
+
+      console.log('[FRONTEND] Adicionando resposta do assistente à sessão');
       // Adicionar resposta do assistente à sessão
       setSessionMessages([...newSessionMessages, { role: 'assistant', content: data.response }]);
 
@@ -400,7 +409,15 @@ export default function ChatPage() {
               </div>
             </div>
           ) : (
-            allMessages.map((message) => (
+            allMessages.map((message) => {
+              console.log('[RENDER] Mensagem sendo renderizada:', { 
+                id: message.id, 
+                role: message.role, 
+                contentLength: message.content?.length,
+                contentPreview: message.content?.substring(0, 50)
+              });
+              
+              return (
               <div
                 key={message.id}
                 className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -418,7 +435,7 @@ export default function ChatPage() {
                       {message.role === 'user' ? 'VOCÊ' : 'Pracinha'}
                     </span>
                   </div>
-                  <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                  <p className="whitespace-pre-wrap leading-relaxed">{message.content || '(sem conteúdo)'}</p>
                   <p className="text-xs mt-3 opacity-60">
                     {new Date(message.created_at).toLocaleTimeString('pt-BR', {
                       hour: '2-digit',
@@ -427,7 +444,7 @@ export default function ChatPage() {
                   </p>
                 </div>
               </div>
-            ))
+            )})
           )}
           <div ref={messagesEndRef} />
         </div>

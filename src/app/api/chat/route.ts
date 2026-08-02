@@ -303,19 +303,17 @@ export async function POST(request: NextRequest) {
         console.log('[CHAT-GEMINI-RAW] Resposta bruta:', response);
         console.log('[CHAT-GEMINI-RAW] Tamanho bruto:', response.length);
         
-        // Limpar markdown do texto de resposta
-        response = cleanMarkdown(response);
+        // NÃO limpar markdown - usar resposta original
+        // response = cleanMarkdown(response);
         
-        console.log('[CHAT-GEMINI-CLEANED] Resposta limpa:', response);
-        console.log('[CHAT-GEMINI-CLEANED] Tamanho limpo:', response.length);
+        console.log('[CHAT-GEMINI-FINAL] Resposta final (sem limpeza):', response);
+        console.log('[CHAT-GEMINI-FINAL] Tamanho final:', response.length);
 
-        // Se a resposta ficar vazia após limpar, usar a resposta original
+        // Verificar se resposta está vazia
         if (!response || response.trim().length === 0) {
-          console.warn('[CHAT-GEMINI-WARNING] Resposta ficou vazia após limpeza, usando original');
-          response = await result.response.text();
+          console.error('[CHAT-GEMINI-ERROR] Resposta está VAZIA!');
+          throw new Error('A resposta do Gemini está vazia');
         }
-
-        console.log('[CHAT-GEMINI-SUCCESS] Resposta final, tamanho:', response.length);
 
         // Salvar mensagens no banco (se tiver case_id e passar no filtro)
         if (actualCaseId) {
