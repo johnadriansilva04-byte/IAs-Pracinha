@@ -10,16 +10,20 @@ const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
 const compressor = new ContextCompressor();
 
-// Função para limpar markdown do texto
+// Função para limpar markdown do texto (versão suave que preserva conteúdo)
 function cleanMarkdown(text: string): string {
   return text
     .replace(/#{1,6}\s/g, '') // Remove cerquilhas de títulos
     .replace(/\*\*/g, '') // Remove negrito (**)
-    .replace(/\*/g, '') // Remove itálico (*)
+    .replace(/(?<!\*)\*(?!\*)/g, '') // Remove itálico (*) apenas quando não for negrito
     .replace(/^- /gm, '') // Remove bullet points
     .replace(/^\d+\.\s/gm, '') // Remove listas numeradas
-    .replace(/```[\s\S]*?```/g, '') // Remove código
-    .replace(/`([^`]+)`/g, '$1') // Remove código inline
+    .replace(/```[\s\S]*?```/g, (match) => {
+      // Preservar conteúdo dentro de blocos de código, apenas remover os ```
+      const content = match.replace(/```[\w]*\n?/g, '').replace(/```$/g, '');
+      return `[CÓDIGO: ${content.substring(0, 50)}...]`;
+    })
+    .replace(/`([^`]+)`/g, '$1') // Remove código inline mas preserva texto
     .replace(/\n{3,}/g, '\n\n') // Remove excesso de quebras de linha
     .trim();
 }
