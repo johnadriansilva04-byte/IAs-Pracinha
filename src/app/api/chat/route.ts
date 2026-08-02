@@ -269,8 +269,8 @@ export async function POST(request: NextRequest) {
         const model = genAI.getGenerativeModel({ 
           model: 'gemini-2.5-pro',
           generationConfig: {
-            maxOutputTokens: 150, // Limitar respostas curtas
-            temperature: 0.65, // Equilibrado entre criatividade e precisão
+            maxOutputTokens: 1000, // Aumentado para respostas mais completas
+            temperature: 0.7, // Levemente mais criativo
             topP: 0.8,
             topK: 40
           }

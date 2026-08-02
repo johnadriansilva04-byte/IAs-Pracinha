@@ -222,6 +222,13 @@ export default function ChatPage() {
       return;
     }
 
+    console.log('[UPLOAD-FRONTEND] Iniciando upload:', {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      caseId
+    });
+
     setUploading(true);
 
     try {
@@ -236,14 +243,26 @@ export default function ChatPage() {
 
       const data = await response.json();
 
+      console.log('[UPLOAD-FRONTEND] Resposta do servidor:', data);
+
       if (data.success) {
-        alert(`✅ Documento "${data.fileName}" enviado com sucesso!`);
+        alert(`✅ Documento "${data.document_name}" enviado com sucesso!\n📊 ${data.chunks_saved} partes processadas para RAG.`);
       } else {
-        throw new Error(data.error);
+        throw new Error(data.error || 'Erro desconhecido ao fazer upload');
       }
     } catch (error: any) {
-      console.error('Erro ao fazer upload:', error);
-      alert('❌ Erro ao enviar documento: ' + error.message);
+      console.error('[UPLOAD-FRONTEND] Erro detalhado:', error);
+      let errorMessage = 'Erro ao enviar documento';
+      
+      if (error.message?.includes('Tipo de arquivo não suportado')) {
+        errorMessage = '❌ Formato não suportado. Use: PDF, DOC, DOCX ou TXT';
+      } else if (error.message?.includes('muito grande')) {
+        errorMessage = '❌ Arquivo muito grande. Máximo 50MB';
+      } else if (error.message) {
+        errorMessage = '❌ ' + error.message;
+      }
+      
+      alert(errorMessage + '\n\nDetalhes: ' + (error.message || 'Tente novamente'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {

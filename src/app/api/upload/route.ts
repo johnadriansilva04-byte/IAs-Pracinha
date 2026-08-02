@@ -42,9 +42,13 @@ export async function POST(request: NextRequest) {
       'text/csv'
     ];
 
+    console.log('[UPLOAD] Tipo do arquivo:', file.type);
+    console.log('[UPLOAD] Tipos permitidos:', allowedTypes);
+
     if (!allowedTypes.includes(file.type)) {
+      console.error('[UPLOAD] Tipo não permitido:', file.type);
       return NextResponse.json({ 
-        error: 'Tipo de arquivo não suportado para RAG. Use PDF, DOC, DOCX ou TXT.' 
+        error: `Tipo de arquivo não suportado para RAG: ${file.type}. Use PDF, DOC, DOCX ou TXT.` 
       }, { status: 400 });
     }
 
