@@ -96,12 +96,13 @@ Responda em formato JSON:
   }
 
   estimateTokens(text: string): number {
-    // Estimativa aproximada: 1 token ≈ 4 caracteres (para inglês) ou 2 caracteres (para português)
-    return Math.ceil(text.length / 3);
+    // Estimativa aproximada: 1 token ≈ 4 caracteres (para inglês) ou 3 caracteres (para português)
+    // Ajustado para português que é mais denso
+    return Math.ceil(text.length / 3.5);
   }
 
   shouldCompress(currentTokens: number, maxTokens: number = 100000): boolean {
-    // Comprimir se estiver usando mais de 60% do limite
-    return currentTokens > (maxTokens * 0.6);
+    // Comprimir mais agressivamente para economizar tokens: 50% do limite
+    return currentTokens > (maxTokens * 0.5);
   }
 }

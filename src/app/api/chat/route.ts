@@ -291,9 +291,6 @@ export async function POST(request: NextRequest) {
           messageToSend = `${effectiveConfig.system_prompt}\n\nMinha primeira mensagem: ${message}`;
         }
 
-        // INSTRUÇÃO DE RESPOSTA CURTA PARA TODAS AS MENSAGENS
-        messageToSend += "\n\nIMPORTANTE: Responda sempre de forma ultra curta e direta. Máximo 2-3 frases. Sem explicações longas. Sem formatação markdown. Apenas texto puro.";
-
         const result = await chat.sendMessage(messageToSend);
         let response = await result.response.text();
         
