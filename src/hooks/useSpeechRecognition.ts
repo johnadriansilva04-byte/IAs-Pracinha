@@ -62,22 +62,34 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   }, []);
 
   const startListening = useCallback(() => {
+    console.log('[SPEECH-RECOGNITION] Tentando iniciar reconhecimento');
+    console.log('[SPEECH-RECOGNITION] recognition existe:', !!recognition);
+    console.log('[SPEECH-RECOGNITION] isListening:', isListening);
+    
     if (recognition && !isListening) {
       try {
         recognition.start();
         setIsListening(true);
+        console.log('[SPEECH-RECOGNITION] Reconhecimento iniciado com sucesso');
       } catch (error) {
-        console.error('Erro ao iniciar reconhecimento:', error);
+        console.error('[SPEECH-RECOGNITION] Erro ao iniciar:', error);
         // Se já estiver iniciado, apenas seta o estado
         setIsListening(true);
       }
+    } else {
+      console.warn('[SPEECH-RECOGNITION] Não foi possível iniciar:', {
+        hasRecognition: !!recognition,
+        isListening
+      });
     }
   }, [recognition, isListening]);
 
   const stopListening = useCallback(() => {
+    console.log('[SPEECH-RECOGNITION] Parando reconhecimento');
     if (recognition && isListening) {
       recognition.stop();
       setIsListening(false);
+      console.log('[SPEECH-RECOGNITION] Reconhecimento parado');
     }
   }, [recognition, isListening]);
 
