@@ -29,6 +29,11 @@ export default function ChatPage() {
   const [uploading, setUploading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Cache de respostas e rate limiting
+  const responseCache = useRef<Map<string, string>>(new Map());
+  const lastRequestTime = useRef<number>(0);
+  const MIN_BETWEEN_REQUESTS = 1000; // 1 segundo entre requisições
 
   const { isListening, transcript, startListening, stopListening, isSupported: speechRecognitionSupported } = useSpeechRecognition();
   const { speak, stop: stopSpeaking, isSpeaking, isSupported: speechSynthesisSupported } = useSpeechSynthesis();
@@ -92,7 +97,30 @@ export default function ChatPage() {
 
     const userMessage = input.trim();
     setInput('');
+    
+    // Rate limiting - não permitir requisições muito rápidas
+    const now = Date.now();
+    const timeSinceLastRequest = now - lastRequestTime.current;
+    if (timeSinceLastRequest < MIN_BETWEEN_REQUESTS) {
+      console.warn('[FRONTEND] Rate limit: aguardando', MIN_BETWEEN_REQUESTS - timeSinceLastRequest, 'ms');
+      await new Promise(resolve => setTimeout(resolve, MIN_BETWEEN_REQUESTS - timeSinceLastRequest));
+    }
+    
+    // Verificar cache antes de chamar API
+    const cacheKey = userMessage.toLowerCase().trim();
+    if (responseCache.current.has(cacheKey)) {
+      console.log('[FRONTEND] Resposta em cache encontrada, usando cache');
+      const cachedResponse = responseCache.current.get(cacheKey);
+      setSessionMessages([...sessionMessages, { role: 'user', content: userMessage }]);
+      setSessionMessages(prev => [...prev, { role: 'assistant', content: cachedResponse || '' }]);
+      if (autoVoice && cachedResponse) {
+        speak(cachedResponse);
+      }
+      return;
+    }
+    
     setLoading(true);
+    lastRequestTime.current = Date.now();
 
     console.log('[FRONTEND] Enviando mensagem:', { length: userMessage.length, caseId });
 
@@ -136,6 +164,10 @@ export default function ChatPage() {
       console.log('[FRONTEND] Adicionando resposta do assistente à sessão');
       // Adicionar resposta do assistente à sessão
       setSessionMessages([...newSessionMessages, { role: 'assistant', content: data.response }]);
+      
+      // Salvar no cache
+      responseCache.current.set(cacheKey, data.response);
+      console.log('[FRONTEND] Resposta salva no cache');
 
       // Falar a resposta se auto-voice estiver ativado
       if (autoVoice) {

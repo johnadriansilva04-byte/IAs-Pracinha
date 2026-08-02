@@ -275,7 +275,7 @@ export async function POST(request: NextRequest) {
           model: 'gemini-1.5-flash',
           // systemInstruction: effectiveConfig.system_prompt, // Removido temporariamente para teste
           generationConfig: {
-            maxOutputTokens: 1000, // Aumentado para respostas mais completas
+            maxOutputTokens: 500, // Reduzido para economizar tokens
             temperature: 0.7, // Levemente mais criativo
             topP: 0.8,
             topK: 40
@@ -283,7 +283,7 @@ export async function POST(request: NextRequest) {
         });
 
         const chat = model.startChat({
-          history: allMessages.map(m => ({
+          history: allMessages.slice(-5).map(m => ({ // Apenas últimas 5 mensagens para economizar tokens
             role: m.role === 'assistant' ? 'model' : 'user',
             parts: [{ text: m.content }]
           }))
