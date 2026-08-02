@@ -7,6 +7,10 @@ import { MessageFilter } from '@/lib/message-filter';
 import { DEFAULT_CONFIG } from '@/lib/default-config';
 
 const GOOGLE_AI_KEY = process.env.GOOGLE_AI_API_KEY || '';
+console.log('[CHAT-INIT] GOOGLE_AI_KEY configurada:', !!GOOGLE_AI_KEY);
+console.log('[CHAT-INIT] GOOGLE_AI_KEY length:', GOOGLE_AI_KEY?.length);
+console.log('[CHAT-INIT] GOOGLE_AI_KEY prefix:', GOOGLE_AI_KEY?.substring(0, 10) + '...');
+
 const genAI = new GoogleGenerativeAI(GOOGLE_AI_KEY);
 const compressor = new ContextCompressor();
 
