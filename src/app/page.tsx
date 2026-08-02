@@ -127,12 +127,6 @@ export default function Home() {
             + Nova Conversa
           </button>
           <Link
-            href="/voice-live"
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-          >
-            🎙️ Voz Nativa
-          </Link>
-          <Link
             href="/config"
             className="px-6 py-3 border border-zinc-300 dark:border-zinc-600 text-zinc-700 dark:text-zinc-300 rounded-lg font-medium hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
